@@ -33,7 +33,13 @@
     "remove": "移除",
     "select": "选择",
     "all": "全部",
-    "total": "总计"
+    "total": "总计",
+    "ok": "确定"
+  },
+  "error": {
+    "title": "错误",
+    "details": "详细信息",
+    "retry": "重试"
   },
   "login": {
     "title": "DNS 服务器",
@@ -208,7 +214,7 @@
     "primaryNsAddresses": "主 NS 地址",
     "forwarder": "转发器",
     "pagination": {
-      "summary": "{{start}}-{{end}} ({{total}}) 共 {{total}} 个区域（第 {{page}} 页，共 {{pages}} 页）",
+      "summary": "{{start}}-{{end}} 共 {{total}} 个区域（第 {{page}} 页，共 {{pages}} 页）",
       "empty": "暂无区域"
     }
   }

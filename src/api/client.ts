@@ -66,7 +66,7 @@ export class ApiClient {
     if (data.status === 'ok') {
       return data;
     }
-    return new ApiError(data.errorMessage || 'Unknown error', data.innerErrorMessage);
+    return new ApiError(data.errorMessage || 'Unknown error1', data.innerErrorMessage);
   }
 
   async get<T = never>(endpoint: string): Promise<ApiResponse<T>> {
@@ -89,8 +89,8 @@ export class ApiClient {
 
   async login(username: string, password: string, totp?: string): Promise<LoginResponse> {
     const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
+    formData.append('user', username);
+    formData.append('pass', password);
     if (totp) {
       formData.append('totp', totp);
     }

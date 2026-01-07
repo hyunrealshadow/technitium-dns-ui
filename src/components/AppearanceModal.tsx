@@ -1,7 +1,7 @@
 import { Modal, SegmentedControl, Stack, Text, Select } from '@mantine/core';
 import { useAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
-import { colorModeAtom } from '../../store/theme.ts';
+import { colorModeAtom } from '../store/theme.ts';
 
 interface AppearanceModalProps {
   opened: boolean;

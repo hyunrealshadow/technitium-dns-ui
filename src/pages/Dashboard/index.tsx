@@ -31,6 +31,7 @@ import { type StatsData } from './types';
 import { formatPercentage } from './utils';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { DashboardSearch } from './schema.ts';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -300,7 +301,8 @@ export function DashboardPage() {
         ]}
       />
 
-      {showSkeleton || isLoading ? (
+      <ErrorBoundary>
+        {showSkeleton || isLoading ? (
         <Stack>
           {/* 第一行：5个骨架屏 */}
           <Grid>
@@ -582,6 +584,7 @@ export function DashboardPage() {
           </Stack>
         </Paper>
       )}
+      </ErrorBoundary>
     </Stack>
   );
 }

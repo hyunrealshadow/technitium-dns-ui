@@ -6,7 +6,7 @@ import {sessionAtom} from '../../store/auth';
 import {useNavigate} from '@tanstack/react-router';
 import {apiClient} from '../../api/client';
 import {NavLinks} from './NavLinks';
-import {AppearanceModal} from './AppearanceModal.tsx';
+import {AppearanceModal} from '../AppearanceModal.tsx';
 import {IconPalette} from '@tabler/icons-react';
 
 interface MainLayoutProps {

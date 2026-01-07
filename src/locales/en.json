@@ -33,7 +33,13 @@
     "remove": "Remove",
     "select": "Select",
     "all": "All",
-    "total": "Total"
+    "total": "Total",
+    "ok": "OK"
+  },
+  "error": {
+    "title": "Error",
+    "details": "Details",
+    "retry": "Retry"
   },
   "login": {
     "title": "DNS Server",
