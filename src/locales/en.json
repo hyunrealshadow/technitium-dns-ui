@@ -107,18 +107,16 @@
       "clientRank": "Client Rankings",
       "domainRank": "Domain Rankings",
       "blockedDomainRank": "Blocked Domain Rankings"
+    },
+    "notification": {
+      "domainBlocked": "Domain \"{{domain}}\" has been added to block list",
+      "domainBlockFailed": "Adding domain {{domain}} to block list failed",
+      "domainAllowed": "Domain \"{{domain}}\" has been added to allow list",
+      "domainAllowFailed": "Adding domain {{domain}} to allow list failed",
+      "authFailed": "Authentication failed",
+      "pleaseReLogin": "Please login again",
+      "loadFailed": "Failed to load dashboard data"
     }
-  },
-  "notification": {
-    "blocked": "Blocked",
-    "domainBlocked": "Domain \"{{domain}}\" has been added to block list",
-    "allow": "Allowed",
-    "domainAllowed": "Domain \"{{domain}}\" has been added to allow list",
-    "blockFailed": "Failed to block domain",
-    "allowFailed": "Failed to allow domain",
-    "authFailed": "Authentication failed",
-    "pleaseReLogin": "Please login again",
-    "loadFailed": "Failed to load dashboard data"
   },
   "layout": {
     "title": "Technitium DNS Server",

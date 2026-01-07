@@ -32,7 +32,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { notifications } from '@mantine/notifications';
+import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
 import type { ZonesListResponse, ZoneType } from './types';
 
@@ -113,7 +113,7 @@ export function ZonesPage() {
       // Hide skeleton with transition delay after fetching completes
       const timer = setTimeout(() => {
         setShowSkeleton(false);
-      }, 300);
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [isFetching, showSkeleton]);
@@ -124,67 +124,31 @@ export function ZonesPage() {
 
   const handleEnableZone = async (zoneName: string) => {
     try {
-      const response = await apiClient.post('/zones/enable', { zone: zoneName });
-      if (response.status === 'ok') {
-        notifications.show({
-          title: t('common.success'),
-          message: t('zones.enabled', { zone: zoneName }),
-          color: 'green',
-        });
-        await queryClient.invalidateQueries({ queryKey: ['zones'] });
-      } else {
-        throw new Error(response.errorMessage);
-      }
+      await apiClient.post('/zones/enable', { zone: zoneName });
+      success(t('common.success'), t('zones.enabled', { zone: zoneName }));
+      await queryClient.invalidateQueries({ queryKey: ['zones'] });
     } catch {
-      notifications.show({
-        title: t('common.error'),
-        message: t('zones.enableFailed'),
-        color: 'red',
-      });
+      error(t('common.error'), t('zones.enableFailed'));
     }
   };
 
   const handleDisableZone = async (zoneName: string) => {
     try {
-      const response = await apiClient.post('/zones/disable', { zone: zoneName });
-      if (response.status === 'ok') {
-        notifications.show({
-          title: t('common.success'),
-          message: t('zones.disabled', { zone: zoneName }),
-          color: 'green',
-        });
-        await queryClient.invalidateQueries({ queryKey: ['zones'] });
-      } else {
-        throw new Error(response.errorMessage);
-      }
+      await apiClient.post('/zones/disable', { zone: zoneName });
+      success(t('common.success'), t('zones.disabled', { zone: zoneName }));
+      await queryClient.invalidateQueries({ queryKey: ['zones'] });
     } catch {
-      notifications.show({
-        title: t('common.error'),
-        message: t('zones.disableFailed'),
-        color: 'red',
-      });
+      error(t('common.error'), t('zones.disableFailed'));
     }
   };
 
   const handleDeleteZone = async (zoneName: string) => {
     try {
-      const response = await apiClient.post('/zones/delete', { zone: zoneName });
-      if (response.status === 'ok') {
-        notifications.show({
-          title: t('common.success'),
-          message: t('zones.deleted', { zone: zoneName }),
-          color: 'green',
-        });
-        await queryClient.invalidateQueries({ queryKey: ['zones'] });
-      } else {
-        throw new Error(response.errorMessage);
-      }
+      await apiClient.post('/zones/delete', { zone: zoneName });
+      success(t('common.success'), t('zones.deleted', { zone: zoneName }));
+      await queryClient.invalidateQueries({ queryKey: ['zones'] });
     } catch {
-      notifications.show({
-        title: t('common.error'),
-        message: t('zones.deleteFailed'),
-        color: 'red',
-      });
+      error(t('common.error'), t('zones.deleteFailed'));
     }
   };
 
@@ -203,38 +167,22 @@ export function ZonesPage() {
 
   const handleCreateZone = async () => {
     if (!newZoneName.trim()) {
-      notifications.show({
-        title: t('common.error'),
-        message: t('zones.nameRequired'),
-        color: 'red',
-      });
+      error(t('common.error'), t('zones.nameRequired'));
       return;
     }
 
     try {
-      const response = await apiClient.post('/zones/create', {
+      await apiClient.post('/zones/create', {
         zone: newZoneName,
         type: newZoneType,
       });
 
-      if (response.status === 'ok') {
-        notifications.show({
-          title: t('common.success'),
-          message: t('zones.created', { zone: newZoneName }),
-          color: 'green',
-        });
-        setAddZoneModalOpen(false);
-        setNewZoneName('');
-        await queryClient.invalidateQueries({ queryKey: ['zones'] });
-      } else {
-        throw new Error(response.errorMessage);
-      }
+      success(t('common.success'), t('zones.created', { zone: newZoneName }));
+      setAddZoneModalOpen(false);
+      setNewZoneName('');
+      await queryClient.invalidateQueries({ queryKey: ['zones'] });
     } catch {
-      notifications.show({
-        title: t('common.error'),
-        message: t('zones.createFailed'),
-        color: 'red',
-      });
+      error(t('common.error'), t('zones.createFailed'));
     }
   };
 

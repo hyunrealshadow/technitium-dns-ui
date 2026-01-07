@@ -107,18 +107,16 @@
       "clientRank": "客户端排行",
       "domainRank": "域名排行",
       "blockedDomainRank": "被阻止域名排行"
+    },
+    "notification": {
+      "domainBlocked": "域名 \"{{domain}}\" 已添加到阻止列表",
+      "domainBlockFailed": "添加域名 \"{{domain}}\" 到阻止列表失败",
+      "domainAllowed": "域名 \"{{domain}}\" 已添加到允许列表",
+      "domainAllowFailed": "添加域名 \"{{domain}}\" 到允许列表失败",
+      "authFailed": "认证失败",
+      "pleaseReLogin": "请重新登录",
+      "loadFailed": "加载仪表板数据失败"
     }
-  },
-  "notification": {
-    "blocked": "已阻止",
-    "domainBlocked": "域名 \"{{domain}}\" 已添加到阻止列表",
-    "allow": "已允许",
-    "domainAllowed": "域名 \"{{domain}}\" 已添加到允许列表",
-    "blockFailed": "阻止域名失败",
-    "allowFailed": "允许域名失败",
-    "authFailed": "认证失败",
-    "pleaseReLogin": "请重新登录",
-    "loadFailed": "加载仪表板数据失败"
   },
   "layout": {
     "title": "Technitium DNS 服务器",

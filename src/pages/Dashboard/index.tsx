@@ -13,7 +13,7 @@ import {
 import { IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/client';
-import { notifications } from '@mantine/notifications';
+import { error, success } from '../../components/notifications';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatCard } from './components/StatCard';
 import { ServerStatCard } from './components/ServerStatCard';
@@ -97,52 +97,30 @@ export function DashboardPage() {
   const blockDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
       await apiClient.post('/allowed/delete', { domain });
-      const response = await apiClient.post('/blocked/add', { domain });
-      if (response.status !== 'ok') {
-        throw new Error(response.errorMessage || 'Operation failed');
-      }
+      await apiClient.post('/blocked/add', { domain });
       return domain;
     },
     onSuccess: async domain => {
-      notifications.show({
-        title: t('notification.blocked'),
-        message: t('notification.domainBlocked', { domain }),
-        color: 'green',
-      });
+      success(t('common.success'), t('dashboard.notification.domainBlocked', { domain }));
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
-    onError: () => {
-      notifications.show({
-        title: t('common.error'),
-        message: t('notification.blockFailed'),
-        color: 'red',
-      });
+    onError: (_error: Error, domain: string) => {
+      error(t('common.error'), t('dashboard.notification.domainBlockFailed'), domain);
     },
   });
 
   const allowDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
       await apiClient.post('/blocked/delete', { domain });
-      const response = await apiClient.post('/allowed/add', { domain });
-      if (response.status !== 'ok') {
-        throw new Error(response.errorMessage || 'Operation failed');
-      }
+      await apiClient.post('/allowed/add', { domain });
       return domain;
     },
     onSuccess: async domain => {
-      notifications.show({
-        title: t('notification.allow'),
-        message: t('notification.domainAllowed', { domain }),
-        color: 'green',
-      });
+      success(t('common.success'), t('dashboard.notification.domainAllowed', { domain }));
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
-    onError: () => {
-      notifications.show({
-        title: t('common.error'),
-        message: t('notification.allowFailed'),
-        color: 'red',
-      });
+    onError: (_error: Error, domain: string) => {
+      error(t('common.error'), t('dashboard.notification.domainAllowFailed'), domain);
     },
   });
 
@@ -180,9 +158,9 @@ export function DashboardPage() {
   };
 
   // Action handlers
-  const handleShowQueryLogs = (domain: string | null, clientIp: string | null) => {
-    // Navigate to logs page with query params
-    navigate({
+  const handleShowQueryLogs = async (domain: string | null, clientIp: string | null) => {
+    // Navigate to the logs page with query params
+    await navigate({
       to: '/logs',
       search: {
         domain: domain || undefined,
@@ -191,9 +169,9 @@ export function DashboardPage() {
     });
   };
 
-  const handleQueryDns = (domain: string, type: string = 'A') => {
-    // Navigate to DNS client page with query params
-    navigate({
+  const handleQueryDns = async (domain: string, type: string = 'A') => {
+    // Navigate to the DNS client page with query params
+    await navigate({
       to: '/dns-client',
       search: {
         domain,
@@ -303,287 +281,285 @@ export function DashboardPage() {
 
       <ErrorBoundary>
         {showSkeleton || isLoading ? (
-        <Stack>
-          {/* 第一行：5个骨架屏 */}
-          <Grid>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-                <Paper shadow="sm" p="md" withBorder h="100%">
-                  <Skeleton height={40} mb="sm" />
-                  <Skeleton height={20} width="60%" />
-                </Paper>
-              </Grid.Col>
-            ))}
-          </Grid>
-          {/* 第二行：6个骨架屏 */}
-          <Grid>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-                <Paper shadow="sm" p="md" withBorder h="100%">
-                  <Skeleton height={40} mb="sm" />
-                  <Skeleton height={20} width="60%" />
-                </Paper>
-              </Grid.Col>
-            ))}
-          </Grid>
-          {/* 服务器状态 skeleton */}
-          <Grid>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Grid.Col key={i} span={{ base: 12, sm: 6, md: 2 }}>
-                <Paper shadow="sm" p="md" withBorder h="100%">
-                  <Skeleton height={40} mb="sm" />
-                  <Skeleton height={20} width="60%" />
-                </Paper>
-              </Grid.Col>
-            ))}
-          </Grid>
-          {/* 主图表 skeleton */}
-          <Paper shadow="sm" p="md" withBorder>
-            <Skeleton height={30} width="20%" mb="md" />
-            <Skeleton height={300} />
-          </Paper>
-          {/* 饼图 skeleton */}
-          <Grid>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Grid.Col key={i} span={{ base: 12, md: 4 }}>
-                <Paper shadow="sm" p="md" withBorder h="100%">
-                  <Skeleton height={30} width="30%" mb="md" />
-                  <Skeleton height={250} />
-                </Paper>
-              </Grid.Col>
-            ))}
-          </Grid>
-          {/* Top 列表 skeleton */}
-          <Grid>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Grid.Col key={i} span={{ base: 12, md: 4 }}>
-                <Paper shadow="sm" p="md" withBorder h="100%">
-                  <Skeleton height={30} width="40%" mb="md" />
-                  <Skeleton height={300} />
-                </Paper>
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Stack>
-      ) : stats ? (
-        <Stack>
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-              <StatCard
-                title={t('dashboard.stats.totalQueries')}
-                value={stats.totalQueries}
-                color={CHART_COLORS.TOTAL}
-                subtitle="100%"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-              <StatCard
-                title={t('dashboard.stats.noError')}
-                value={stats.totalNoError}
-                color={CHART_COLORS.NO_ERROR}
-                subtitle={formatPercentage(stats.totalNoError, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-              <StatCard
-                title={t('dashboard.stats.serverFailure')}
-                value={stats.totalServerFailure}
-                color={CHART_COLORS.SERVER_FAILURE}
-                subtitle={formatPercentage(stats.totalServerFailure, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-              <StatCard
-                title={t('dashboard.stats.nxDomain')}
-                value={stats.totalNxDomain}
-                color={CHART_COLORS.NX_DOMAIN}
-                subtitle={formatPercentage(stats.totalNxDomain, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
-              <StatCard
-                title={t('dashboard.stats.refused')}
-                value={stats.totalRefused}
-                color={CHART_COLORS.REFUSED}
-                subtitle={formatPercentage(stats.totalRefused, stats.totalQueries)}
-              />
-            </Grid.Col>
-          </Grid>
-
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.authoritative')}
-                value={stats.totalAuthoritative}
-                color={CHART_COLORS.AUTHORITATIVE}
-                subtitle={formatPercentage(stats.totalAuthoritative, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.recursive')}
-                value={stats.totalRecursive}
-                color={CHART_COLORS.RECURSIVE}
-                subtitle={formatPercentage(stats.totalRecursive, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.cached')}
-                value={stats.totalCached}
-                color={CHART_COLORS.CACHED}
-                subtitle={formatPercentage(stats.totalCached, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.blocked')}
-                value={stats.totalBlocked}
-                color={CHART_COLORS.BLOCKED}
-                subtitle={formatPercentage(stats.totalBlocked, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.dropped')}
-                value={stats.totalDropped}
-                color={CHART_COLORS.DROPPED}
-                subtitle={formatPercentage(stats.totalDropped, stats.totalQueries)}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-              <StatCard
-                title={t('dashboard.stats.clients')}
-                value={stats.totalClients}
-                color={CHART_COLORS.CLIENTS}
-              />
-            </Grid.Col>
-          </Grid>
-
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard title={t('dashboard.stats.zones')} value={stats.zones} color="blue" />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard
-                title={t('dashboard.stats.cachedEntries')}
-                value={stats.cachedEntries}
-                color="violet"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard
-                title={t('dashboard.stats.allowedZones')}
-                value={stats.allowedZones}
-                color="green"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard
-                title={t('dashboard.stats.blockedZones')}
-                value={stats.blockedZones}
-                color="orange"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard
-                title={t('dashboard.stats.allowListZones')}
-                value={stats.allowListZones}
-                color="teal"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
-              <ServerStatCard
-                title={t('dashboard.stats.blockListZones')}
-                value={stats.blockListZones}
-                color="red"
-              />
-            </Grid.Col>
-          </Grid>
-
-          <ChartCard
-            title={t('dashboard.charts.queryStats')}
-            data={mainChartData}
-            dataKey="label"
-            series={CHART_SERIES}
-            activeSeries={activeSeries.length > 0 ? activeSeries : CHART_SERIES.map(s => s.name)}
-            onSeriesChange={toggleSeries}
-          />
-
-          <Grid>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <DonutChartCard
-                title={t('dashboard.charts.responseType')}
-                data={queryResponseData!}
-                activeLabels={activeResponseLabels}
-                onLabelClick={label =>
-                  toggleLabel(label, activeResponseLabels, setActiveResponseLabels)
-                }
-                colorMap={RESPONSE_TYPE_COLORS}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <DonutChartCard
-                title={t('dashboard.charts.queryType')}
-                data={queryTypeData!}
-                activeLabels={activeQueryTypeLabels}
-                onLabelClick={label =>
-                  toggleLabel(label, activeQueryTypeLabels, setActiveQueryTypeLabels)
-                }
-                colorMap={QUERY_TYPE_COLORS}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <DonutChartCard
-                title={t('dashboard.charts.protocolType')}
-                data={protocolData!}
-                activeLabels={activeProtocolLabels}
-                onLabelClick={label =>
-                  toggleLabel(label, activeProtocolLabels, setActiveProtocolLabels)
-                }
-                colorMap={PROTOCOL_TYPE_COLORS}
-              />
-            </Grid.Col>
-          </Grid>
-
-          <Grid>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <TopTable
-                title={t('dashboard.tables.clientRank')}
-                data={topClients}
-                tableType="clients"
-                onShowQueryLogs={handleShowQueryLogs}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <TopTable
-                title={t('dashboard.tables.domainRank')}
-                data={topDomains}
-                tableType="domains"
-                onShowQueryLogs={handleShowQueryLogs}
-                onQueryDns={handleQueryDns}
-                onBlockDomain={handleBlockDomain}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <TopTable
-                title={t('dashboard.tables.blockedDomainRank')}
-                data={topBlockedDomains}
-                tableType="blockedDomains"
-                onShowQueryLogs={handleShowQueryLogs}
-                onQueryDns={handleQueryDns}
-                onAllowDomain={handleAllowDomain}
-              />
-            </Grid.Col>
-          </Grid>
-        </Stack>
-      ) : (
-        <Paper shadow="sm" p="md" withBorder>
-          <Stack align="center" py="xl">
-            <Text>{t('dashboard.loadFailed')}</Text>
+          <Stack>
+            <Grid>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={40} mb="sm" />
+                    <Skeleton height={20} width="60%" />
+                  </Paper>
+                </Grid.Col>
+              ))}
+            </Grid>
+            <Grid>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={40} mb="sm" />
+                    <Skeleton height={20} width="60%" />
+                  </Paper>
+                </Grid.Col>
+              ))}
+            </Grid>
+            <Grid>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 2 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={40} mb="sm" />
+                    <Skeleton height={20} width="60%" />
+                  </Paper>
+                </Grid.Col>
+              ))}
+            </Grid>
+            <Paper shadow="sm" p="md" withBorder>
+              <Skeleton height={30} width="20%" mb="md" />
+              <Skeleton height={300} />
+            </Paper>
+            <Grid>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 12, md: 4 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={30} width="30%" mb="md" />
+                    <Skeleton height={250} />
+                  </Paper>
+                </Grid.Col>
+              ))}
+            </Grid>
+            <Grid>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 12, md: 4 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={30} width="40%" mb="md" />
+                    <Skeleton height={300} />
+                  </Paper>
+                </Grid.Col>
+              ))}
+            </Grid>
           </Stack>
-        </Paper>
-      )}
+        ) : stats ? (
+          <Stack>
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <StatCard
+                  title={t('dashboard.stats.totalQueries')}
+                  value={stats.totalQueries}
+                  color={CHART_COLORS.TOTAL}
+                  subtitle="100%"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <StatCard
+                  title={t('dashboard.stats.noError')}
+                  value={stats.totalNoError}
+                  color={CHART_COLORS.NO_ERROR}
+                  subtitle={formatPercentage(stats.totalNoError, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <StatCard
+                  title={t('dashboard.stats.serverFailure')}
+                  value={stats.totalServerFailure}
+                  color={CHART_COLORS.SERVER_FAILURE}
+                  subtitle={formatPercentage(stats.totalServerFailure, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <StatCard
+                  title={t('dashboard.stats.nxDomain')}
+                  value={stats.totalNxDomain}
+                  color={CHART_COLORS.NX_DOMAIN}
+                  subtitle={formatPercentage(stats.totalNxDomain, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <StatCard
+                  title={t('dashboard.stats.refused')}
+                  value={stats.totalRefused}
+                  color={CHART_COLORS.REFUSED}
+                  subtitle={formatPercentage(stats.totalRefused, stats.totalQueries)}
+                />
+              </Grid.Col>
+            </Grid>
+
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.authoritative')}
+                  value={stats.totalAuthoritative}
+                  color={CHART_COLORS.AUTHORITATIVE}
+                  subtitle={formatPercentage(stats.totalAuthoritative, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.recursive')}
+                  value={stats.totalRecursive}
+                  color={CHART_COLORS.RECURSIVE}
+                  subtitle={formatPercentage(stats.totalRecursive, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.cached')}
+                  value={stats.totalCached}
+                  color={CHART_COLORS.CACHED}
+                  subtitle={formatPercentage(stats.totalCached, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.blocked')}
+                  value={stats.totalBlocked}
+                  color={CHART_COLORS.BLOCKED}
+                  subtitle={formatPercentage(stats.totalBlocked, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.dropped')}
+                  value={stats.totalDropped}
+                  color={CHART_COLORS.DROPPED}
+                  subtitle={formatPercentage(stats.totalDropped, stats.totalQueries)}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+                <StatCard
+                  title={t('dashboard.stats.clients')}
+                  value={stats.totalClients}
+                  color={CHART_COLORS.CLIENTS}
+                />
+              </Grid.Col>
+            </Grid>
+
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.zones')}
+                  value={stats.zones}
+                  color="blue"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.cachedEntries')}
+                  value={stats.cachedEntries}
+                  color="violet"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.allowedZones')}
+                  value={stats.allowedZones}
+                  color="green"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.blockedZones')}
+                  value={stats.blockedZones}
+                  color="orange"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.allowListZones')}
+                  value={stats.allowListZones}
+                  color="teal"
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+                <ServerStatCard
+                  title={t('dashboard.stats.blockListZones')}
+                  value={stats.blockListZones}
+                  color="red"
+                />
+              </Grid.Col>
+            </Grid>
+
+            <ChartCard
+              title={t('dashboard.charts.queryStats')}
+              data={mainChartData}
+              dataKey="label"
+              series={CHART_SERIES}
+              activeSeries={activeSeries.length > 0 ? activeSeries : CHART_SERIES.map(s => s.name)}
+              onSeriesChange={toggleSeries}
+            />
+
+            <Grid>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <DonutChartCard
+                  title={t('dashboard.charts.responseType')}
+                  data={queryResponseData!}
+                  activeLabels={activeResponseLabels}
+                  onLabelClick={label =>
+                    toggleLabel(label, activeResponseLabels, setActiveResponseLabels)
+                  }
+                  colorMap={RESPONSE_TYPE_COLORS}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <DonutChartCard
+                  title={t('dashboard.charts.queryType')}
+                  data={queryTypeData!}
+                  activeLabels={activeQueryTypeLabels}
+                  onLabelClick={label =>
+                    toggleLabel(label, activeQueryTypeLabels, setActiveQueryTypeLabels)
+                  }
+                  colorMap={QUERY_TYPE_COLORS}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <DonutChartCard
+                  title={t('dashboard.charts.protocolType')}
+                  data={protocolData!}
+                  activeLabels={activeProtocolLabels}
+                  onLabelClick={label =>
+                    toggleLabel(label, activeProtocolLabels, setActiveProtocolLabels)
+                  }
+                  colorMap={PROTOCOL_TYPE_COLORS}
+                />
+              </Grid.Col>
+            </Grid>
+
+            <Grid>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <TopTable
+                  title={t('dashboard.tables.clientRank')}
+                  data={topClients}
+                  tableType="clients"
+                  onShowQueryLogs={handleShowQueryLogs}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <TopTable
+                  title={t('dashboard.tables.domainRank')}
+                  data={topDomains}
+                  tableType="domains"
+                  onShowQueryLogs={handleShowQueryLogs}
+                  onQueryDns={handleQueryDns}
+                  onBlockDomain={handleBlockDomain}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 4 }}>
+                <TopTable
+                  title={t('dashboard.tables.blockedDomainRank')}
+                  data={topBlockedDomains}
+                  tableType="blockedDomains"
+                  onShowQueryLogs={handleShowQueryLogs}
+                  onQueryDns={handleQueryDns}
+                  onAllowDomain={handleAllowDomain}
+                />
+              </Grid.Col>
+            </Grid>
+          </Stack>
+        ) : (
+          <Paper shadow="sm" p="md" withBorder>
+            <Stack align="center" py="xl">
+              <Text>{t('dashboard.loadFailed')}</Text>
+            </Stack>
+          </Paper>
+        )}
       </ErrorBoundary>
     </Stack>
   );
