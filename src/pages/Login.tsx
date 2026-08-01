@@ -1,12 +1,21 @@
-import {useEffect, useState} from 'react';
-import {Alert, Button, Container, Paper, PasswordInput, Stack, TextInput, Title,} from '@mantine/core';
-import {useForm} from '@mantine/form';
-import {useAtomValue, useSetAtom} from 'jotai';
-import {useTranslation} from 'react-i18next';
-import {isAuthenticatedAtom, sessionAtom} from '../store/auth';
-import {apiClient} from '../api/client';
-import {useNavigate} from '@tanstack/react-router';
-import {IconAlertCircle} from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Container,
+  Paper,
+  PasswordInput,
+  Stack,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useTranslation } from 'react-i18next';
+import { isAuthenticatedAtom, sessionAtom } from '../store/auth';
+import { apiClient } from '../api/client';
+import { useNavigate } from '@tanstack/react-router';
+import { IconAlertCircle } from '@tabler/icons-react';
 
 export function LoginPage() {
   const { t } = useTranslation();

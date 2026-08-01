@@ -19,9 +19,7 @@ function Fallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export function ErrorBoundary({ children, fallback }: ErrorBoundaryProps) {
   return (
-    <ReactErrorBoundary
-      FallbackComponent={fallback ? () => <>{fallback}</> : Fallback}
-    >
+    <ReactErrorBoundary FallbackComponent={fallback ? () => <>{fallback}</> : Fallback}>
       {children}
     </ReactErrorBoundary>
   );

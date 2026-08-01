@@ -1,10 +1,10 @@
-import {Badge, Group, Paper, ScrollArea, Text, Title} from '@mantine/core';
-import {DonutChart} from '@mantine/charts';
+import { Badge, Group, Paper, ScrollArea, Text, Title } from '@mantine/core';
+import { DonutChart } from '@mantine/charts';
 import type React from 'react';
-import {useTranslation} from 'react-i18next';
-import {LABEL_TRANSLATION_KEYS} from '../constants';
-import {type PieChartData} from '../types';
-import {getLabelColor} from '../utils';
+import { useTranslation } from 'react-i18next';
+import { LABEL_TRANSLATION_KEYS } from '../constants';
+import { type PieChartData } from '../types';
+import { getLabelColor } from '../utils';
 
 interface DonutChartCardProps {
   title: string;

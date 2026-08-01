@@ -13,7 +13,6 @@ import {
   Skeleton,
   Stack,
   Table,
-  Tabs,
   Text,
   TextInput,
   Title,
@@ -34,9 +33,18 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
-import type { ZonesListResponse, ZoneType } from './types';
+import type { ZonesListResponse, ZoneInfo } from './types';
+import { ZoneDetailView } from './components/ZoneDetailView';
+import { AddZoneModal } from './components/AddZoneModal';
+import {
+  ImportZoneModal,
+  CloneZoneModal,
+  ConvertZoneModal,
+  ZoneOptionsModal,
+  PermissionsModal,
+} from './components/ZoneModals';
 
-const ZONE_TYPE_COLORS: Record<ZoneType, string> = {
+const ZONE_TYPE_COLORS: Record<string, string> = {
   Primary: 'blue',
   Secondary: 'green',
   Stub: 'orange',
@@ -46,6 +54,17 @@ const ZONE_TYPE_COLORS: Record<ZoneType, string> = {
   ForwarderCatalog: 'grape',
   Hint: 'gray',
   Cache: 'dark',
+  Catalog: 'cyan',
+  Internal: 'gray',
+};
+
+const ZONE_STATUS_COLORS: Record<string, string> = {
+  Enabled: 'green',
+  Disabled: 'gray',
+  Expired: 'red',
+  'Validation Failed': 'red',
+  'Sync Failed': 'yellow',
+  'Notify Failed': 'yellow',
 };
 
 async function fetchZones(page: number, pageSize: number): Promise<ZonesListResponse> {
@@ -58,6 +77,21 @@ async function fetchZones(page: number, pageSize: number): Promise<ZonesListResp
   return response.response;
 }
 
+function getZoneStatus(zone: ZoneInfo): string {
+  if (zone.disabled) return 'Disabled';
+  if (zone.isExpired) return 'Expired';
+  if (zone.validationFailed) return 'Validation Failed';
+  if (zone.syncFailed) return 'Sync Failed';
+  if (zone.notifyFailed) return 'Notify Failed';
+  return 'Enabled';
+}
+
+function getDnssecLabel(zone: ZoneInfo): string | null {
+  const s = zone.dnssecStatus;
+  if (s === 'SignedWithNSEC' || s === 'SignedWithNSEC3') return 'DNSSEC';
+  return null;
+}
+
 export function ZonesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,39 +101,31 @@ export function ZonesPage() {
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
-  // Get page and pageSize from URL
   const page = search.page;
   const pageSize = search.pageSize;
+  const selectedZone = search.zone;
 
-  // Add zone modal
-  const [addZoneModalOpen, setAddZoneModalOpen] = useState(false);
-  const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneType, setNewZoneType] = useState<ZoneType>('Primary');
+  const [showSkeleton, setShowSkeleton] = useState(false);
 
-  // Delete confirmation modal
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [zoneToDelete, setZoneToDelete] = useState<string | null>(null);
-
-  // Use react-query for data fetching
   const { data, isFetching, isError, refetch } = useQuery({
     queryKey: ['zones', page, pageSize],
     queryFn: () => fetchZones(page, pageSize),
     staleTime: 30_000,
   });
 
-  // Loading state - only show skeleton after a delay
-  const [showSkeleton, setShowSkeleton] = useState(false);
-
   useEffect(() => {
-    // Only show skeleton if fetching takes longer than threshold
     const timer = setTimeout(() => {
-      if (isFetching) {
-        setShowSkeleton(true);
-      }
+      if (isFetching) setShowSkeleton(true);
     }, 150);
-
     return () => clearTimeout(timer);
   }, [isFetching]);
+
+  useEffect(() => {
+    if (!isFetching && showSkeleton) {
+      const timer = setTimeout(() => setShowSkeleton(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetching, showSkeleton]);
 
   const handlePageChange = (newPage: number) => {
     navigate({
@@ -108,19 +134,125 @@ export function ZonesPage() {
     });
   };
 
-  useEffect(() => {
-    if (!isFetching && showSkeleton) {
-      // Hide skeleton with transition delay after fetching completes
-      const timer = setTimeout(() => {
-        setShowSkeleton(false);
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [isFetching, showSkeleton]);
+  const handleSelectZone = (zone: string) => {
+    navigate({
+      to: '/zones',
+      search: { zone, page: 1, pageSize, recordsPage: 1 },
+    });
+  };
+
+  const handleBackToList = () => {
+    navigate({
+      to: '/zones',
+      search: { page, pageSize },
+    });
+  };
 
   const handleRefresh = async () => {
     await refetch();
   };
+
+  // If a zone is selected, show the detail view
+  if (selectedZone) {
+    return <ZoneDetailView zone={selectedZone} onBack={handleBackToList} />;
+  }
+
+  // List view
+  const filteredZones = (data?.zones || []).filter(zone => {
+    const matchesSearch =
+      zone.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      (zone.nameIdn && zone.nameIdn.toLowerCase().includes(searchText.toLowerCase()));
+    const matchesType = filterType === 'all' || zone.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const zoneTypeOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'Primary', label: t('zones.types.Primary') },
+    { value: 'Secondary', label: t('zones.types.Secondary') },
+    { value: 'Stub', label: t('zones.types.Stub') },
+    { value: 'Forwarder', label: t('zones.types.Forwarder') },
+    { value: 'SecondaryForwarder', label: t('zones.types.SecondaryForwarder') },
+    { value: 'SecondaryCatalog', label: t('zones.types.SecondaryCatalog') },
+    { value: 'ForwarderCatalog', label: t('zones.types.ForwarderCatalog') },
+  ];
+
+  const handleRefreshWithCallback = async () => {
+    await handleRefresh();
+  };
+
+  return (
+    <ZoneListView
+      t={t}
+      data={data}
+      isFetching={isFetching}
+      isError={isError}
+      showSkeleton={showSkeleton}
+      filteredZones={filteredZones}
+      searchText={searchText}
+      onSearchChange={setSearchText}
+      filterType={filterType}
+      onFilterTypeChange={setFilterType}
+      page={page}
+      pageSize={pageSize}
+      zoneTypeOptions={zoneTypeOptions}
+      onPageChange={handlePageChange}
+      onRefresh={handleRefreshWithCallback}
+      onSelectZone={handleSelectZone}
+      queryClient={queryClient}
+    />
+  );
+}
+
+interface ZoneListViewProps {
+  t: (key: string, options?: Record<string, unknown>) => string;
+  data: ZonesListResponse | undefined;
+  isFetching: boolean;
+  isError: boolean;
+  showSkeleton: boolean;
+  filteredZones: ZoneInfo[];
+  searchText: string;
+  onSearchChange: (v: string) => void;
+  filterType: string;
+  onFilterTypeChange: (v: string) => void;
+  page: number;
+  pageSize: number;
+  zoneTypeOptions: { value: string; label: string }[];
+  onPageChange: (p: number) => void;
+  onRefresh: () => Promise<void>;
+  onSelectZone: (zone: string) => void;
+  queryClient: ReturnType<typeof useQueryClient>;
+}
+
+function ZoneListView({
+  t,
+  data,
+  isFetching,
+  isError,
+  showSkeleton,
+  filteredZones,
+  searchText,
+  onSearchChange,
+  filterType,
+  onFilterTypeChange,
+  page,
+  pageSize,
+  zoneTypeOptions,
+  onPageChange,
+  onRefresh,
+  onSelectZone,
+  queryClient,
+}: ZoneListViewProps) {
+  const [addZoneModalOpen, setAddZoneModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [zoneToDelete, setZoneToDelete] = useState<string | null>(null);
+
+  const [actionZone, setActionZone] = useState<ZoneInfo | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [optionsModalOpen, setOptionsModalOpen] = useState(false);
+  const [permsModalOpen, setPermsModalOpen] = useState(false);
 
   const handleEnableZone = async (zoneName: string) => {
     try {
@@ -150,60 +282,73 @@ export function ZonesPage() {
     } catch {
       error(t('common.error'), t('zones.deleteFailed'));
     }
+    setDeleteModalOpen(false);
+    setZoneToDelete(null);
   };
 
-  const confirmDeleteZone = (zoneName: string) => {
-    setZoneToDelete(zoneName);
-    setDeleteModalOpen(true);
+  const handleAddZoneSuccess = async () => {
+    setAddZoneModalOpen(false);
+    await queryClient.invalidateQueries({ queryKey: ['zones'] });
   };
 
-  const handleConfirmDelete = async () => {
-    if (zoneToDelete) {
-      await handleDeleteZone(zoneToDelete);
-      setDeleteModalOpen(false);
-      setZoneToDelete(null);
-    }
-  };
-
-  const handleCreateZone = async () => {
-    if (!newZoneName.trim()) {
-      error(t('common.error'), t('zones.nameRequired'));
-      return;
-    }
-
+  const handleResync = async (zoneName: string) => {
     try {
-      await apiClient.post('/zones/create', {
-        zone: newZoneName,
-        type: newZoneType,
-      });
-
-      success(t('common.success'), t('zones.created', { zone: newZoneName }));
-      setAddZoneModalOpen(false);
-      setNewZoneName('');
-      await queryClient.invalidateQueries({ queryKey: ['zones'] });
+      await apiClient.post('/zones/resync', { zone: zoneName });
+      success(t('common.success'), t('zones.zoneResynced', { zone: zoneName }));
     } catch {
-      error(t('common.error'), t('zones.createFailed'));
+      error(t('common.error'), t('zones.zoneResyncFailed'));
     }
   };
 
-  const filteredZones = (data?.zones || []).filter(zone => {
-    const matchesSearch =
-      zone.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      (zone.nameIdn && zone.nameIdn.toLowerCase().includes(searchText.toLowerCase()));
-    const matchesType = filterType === 'all' || zone.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const handleExportZone = (zoneName: string) => {
+    const token = apiClient.getToken();
+    if (token) {
+      window.open(
+        `/api/zones/export?token=${encodeURIComponent(token)}&zone=${encodeURIComponent(zoneName)}`,
+        '_blank'
+      );
+      success(t('common.success'), t('zones.zoneExported'));
+    }
+  };
 
-  const zoneTypeOptions = [
-    { value: 'all', label: t('common.all') },
-    { value: 'Primary', label: t('zones.types.Primary') },
-    { value: 'Secondary', label: t('zones.types.Secondary') },
-    { value: 'Stub', label: t('zones.types.Stub') },
-    { value: 'Forwarder', label: t('zones.types.Forwarder') },
-    { value: 'SecondaryForwarder', label: t('zones.types.SecondaryForwarder') },
-    { value: 'SecondaryCatalog', label: t('zones.types.SecondaryCatalog') },
-    { value: 'ForwarderCatalog', label: t('zones.types.ForwarderCatalog') },
-  ];
+  const canResync = (type: string) =>
+    ['Secondary', 'SecondaryForwarder', 'SecondaryCatalog', 'Stub'].includes(type);
+
+  const canImport = (type: string) => type === 'Primary' || type === 'Forwarder';
+
+  const canExport = (type: string) =>
+    [
+      'Primary',
+      'Forwarder',
+      'Secondary',
+      'SecondaryForwarder',
+      'SecondaryCatalog',
+      'Catalog',
+    ].includes(type);
+
+  const canConvert = (type: string) =>
+    ['Primary', 'Secondary', 'SecondaryForwarder', 'Forwarder', 'SecondaryCatalog'].includes(type);
+
+  const canClone = (type: string) => type === 'Primary' || type === 'Forwarder';
+
+  const canShowOptions = (type: string) =>
+    [
+      'Primary',
+      'Secondary',
+      'SecondaryForwarder',
+      'SecondaryCatalog',
+      'Stub',
+      'Forwarder',
+      'Catalog',
+    ].includes(type);
+
+  const handleZoneActionSuccess = async () => {
+    setImportModalOpen(false);
+    setCloneModalOpen(false);
+    setConvertModalOpen(false);
+    setOptionsModalOpen(false);
+    await queryClient.invalidateQueries({ queryKey: ['zones'] });
+  };
 
   return (
     <Stack>
@@ -213,11 +358,7 @@ export function ZonesPage() {
           <Button leftSection={<IconPlus size={16} />} onClick={() => setAddZoneModalOpen(true)}>
             {t('zones.addZone')}
           </Button>
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            onClick={handleRefresh}
-            loading={isFetching}
-          >
+          <Button leftSection={<IconRefresh size={16} />} onClick={onRefresh} loading={isFetching}>
             {t('common.refresh')}
           </Button>
         </Group>
@@ -229,13 +370,13 @@ export function ZonesPage() {
             placeholder={t('zones.searchPlaceholder')}
             leftSection={<IconSearch size={16} />}
             value={searchText}
-            onChange={e => setSearchText(e.target.value)}
+            onChange={e => onSearchChange(e.target.value)}
             style={{ flex: 1 }}
           />
           <Select
             data={zoneTypeOptions}
             value={filterType}
-            onChange={value => setFilterType(value || 'all')}
+            onChange={value => onFilterTypeChange(value || 'all')}
             w={150}
           />
         </Group>
@@ -248,26 +389,22 @@ export function ZonesPage() {
                 <Table.Tr>
                   <Table.Th>{t('zones.name')}</Table.Th>
                   <Table.Th>{t('zones.type')}</Table.Th>
-                  <Table.Th>{t('zones.serial')}</Table.Th>
+                  <Table.Th>{t('zones.dnssec')}</Table.Th>
                   <Table.Th>{t('zones.status')}</Table.Th>
+                  <Table.Th>{t('zones.serial')}</Table.Th>
+                  <Table.Th>{t('zones.expiry')}</Table.Th>
+                  <Table.Th>{t('zones.lastModified')}</Table.Th>
                   <Table.Th style={{ width: 60 }}></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Table.Tr key={i}>
-                    <Table.Td>
-                      <Skeleton height={20} />
-                    </Table.Td>
-                    <Table.Td>
-                      <Skeleton height={24} width={80} />
-                    </Table.Td>
-                    <Table.Td>
-                      <Skeleton height={20} width={60} />
-                    </Table.Td>
-                    <Table.Td>
-                      <Skeleton height={24} width={60} />
-                    </Table.Td>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <Table.Td key={j}>
+                        <Skeleton height={20} />
+                      </Table.Td>
+                    ))}
                     <Table.Td>
                       <Skeleton height={36} width={36} circle />
                     </Table.Td>
@@ -278,9 +415,7 @@ export function ZonesPage() {
           </>
         ) : isError ? (
           <Center py="xl">
-            <Stack align="center">
-              <Text>{t('zones.loadFailed')}</Text>
-            </Stack>
+            <Text>{t('zones.loadFailed')}</Text>
           </Center>
         ) : filteredZones.length === 0 ? (
           <Center py="xl">
@@ -293,87 +428,199 @@ export function ZonesPage() {
                 <Table.Tr>
                   <Table.Th>{t('zones.name')}</Table.Th>
                   <Table.Th>{t('zones.type')}</Table.Th>
-                  <Table.Th>{t('zones.serial')}</Table.Th>
+                  <Table.Th>{t('zones.dnssec')}</Table.Th>
                   <Table.Th>{t('zones.status')}</Table.Th>
+                  <Table.Th>{t('zones.serial')}</Table.Th>
+                  <Table.Th>{t('zones.expiry')}</Table.Th>
+                  <Table.Th>{t('zones.lastModified')}</Table.Th>
                   <Table.Th style={{ width: 60 }}></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {filteredZones.map(zone => (
-                  <Table.Tr key={zone.name}>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <Text size="sm" fw={500}>
-                          {zone.nameIdn || zone.name}
-                        </Text>
-                        {zone.nameIdn && (
-                          <Tooltip label={zone.name}>
-                            <Badge size="xs" variant="light">
-                              IDN
-                            </Badge>
-                          </Tooltip>
-                        )}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge color={ZONE_TYPE_COLORS[zone.type]} variant="light">
-                        {t(`zones.types.${zone.type}`)}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{zone.soaSerial}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      {zone.disabled ? (
-                        <Badge color="red" variant="light">
-                          {t('common.disabled')}
-                        </Badge>
-                      ) : (
-                        <Badge color="green" variant="light">
-                          {t('common.enabled')}
-                        </Badge>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      <Menu position="bottom-end" shadow="sm">
-                        <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray">
-                            <IconDotsVertical size={16} />
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          {zone.disabled ? (
-                            <Menu.Item
-                              leftSection={<IconCheck size={14} />}
-                              onClick={() => handleEnableZone(zone.name)}
-                            >
-                              {t('zones.enable')}
-                            </Menu.Item>
-                          ) : (
-                            <Menu.Item
-                              leftSection={<IconX size={14} />}
-                              onClick={() => handleDisableZone(zone.name)}
-                            >
-                              {t('zones.disable')}
-                            </Menu.Item>
-                          )}
-                          <Menu.Divider />
-                          <Menu.Item leftSection={<IconEdit size={14} />}>
-                            {t('zones.records')}
-                          </Menu.Item>
-                          <Menu.Divider />
-                          <Menu.Item
-                            leftSection={<IconTrash size={14} />}
-                            color="red"
-                            onClick={() => confirmDeleteZone(zone.name)}
+                {filteredZones.map(zone => {
+                  const status = getZoneStatus(zone);
+                  const dnssecLabel = getDnssecLabel(zone);
+                  return (
+                    <Table.Tr key={zone.name}>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <Text
+                            size="sm"
+                            fw={500}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => onSelectZone(zone.name)}
                           >
-                            {t('common.delete')}
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
+                            {zone.nameIdn || zone.name || '<root>'}
+                          </Text>
+                          {zone.nameIdn && (
+                            <Tooltip label={zone.name}>
+                              <Badge size="xs" variant="light">
+                                IDN
+                              </Badge>
+                            </Tooltip>
+                          )}
+                          {zone.catalog && (
+                            <Badge size="xs" variant="light" color="gray">
+                              {zone.catalog}
+                            </Badge>
+                          )}
+                          {zone.internal && (
+                            <Badge size="xs" variant="light" color="gray">
+                              {t('zones.internal')}
+                            </Badge>
+                          )}
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={ZONE_TYPE_COLORS[zone.type] || 'gray'} variant="light">
+                          {t(`zones.types.${zone.type}`)}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        {dnssecLabel && (
+                          <Badge
+                            color={zone.hasDnssecPrivateKeys ? 'blue' : 'gray'}
+                            variant="light"
+                          >
+                            {dnssecLabel}
+                          </Badge>
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={ZONE_STATUS_COLORS[status] || 'green'} variant="light">
+                          {t(
+                            `common.${status === 'Enabled' ? 'enabled' : status === 'Disabled' ? 'disabled' : 'warning'}`
+                          )}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{zone.soaSerial ?? '-'}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">
+                          {zone.expiry ? new Date(zone.expiry).toLocaleString() : '-'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">
+                          {zone.lastModified ? new Date(zone.lastModified).toLocaleString() : '-'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Menu position="bottom-end" shadow="sm">
+                          <Menu.Target>
+                            <ActionIcon variant="subtle" color="gray">
+                              <IconDotsVertical size={16} />
+                            </ActionIcon>
+                          </Menu.Target>
+                          <Menu.Dropdown>
+                            <Menu.Item
+                              leftSection={<IconEdit size={14} />}
+                              onClick={() => onSelectZone(zone.name)}
+                            >
+                              {t('zones.records')}
+                            </Menu.Item>
+                            {!zone.internal && (
+                              <>
+                                <Menu.Divider />
+                                {zone.disabled ? (
+                                  <Menu.Item
+                                    leftSection={<IconCheck size={14} />}
+                                    onClick={() => handleEnableZone(zone.name)}
+                                  >
+                                    {t('zones.enable')}
+                                  </Menu.Item>
+                                ) : (
+                                  <Menu.Item
+                                    leftSection={<IconX size={14} />}
+                                    onClick={() => handleDisableZone(zone.name)}
+                                  >
+                                    {t('zones.disable')}
+                                  </Menu.Item>
+                                )}
+                              </>
+                            )}
+                            {canResync(zone.type) && (
+                              <Menu.Item onClick={() => handleResync(zone.name)}>
+                                {t('zones.resync')}
+                              </Menu.Item>
+                            )}
+                            {canImport(zone.type) && (
+                              <Menu.Item
+                                onClick={() => {
+                                  setActionZone(zone);
+                                  setImportModalOpen(true);
+                                }}
+                              >
+                                {t('common.import')}
+                              </Menu.Item>
+                            )}
+                            {canExport(zone.type) && (
+                              <Menu.Item onClick={() => handleExportZone(zone.name)}>
+                                {t('common.export')}
+                              </Menu.Item>
+                            )}
+                            {canConvert(zone.type) && (
+                              <Menu.Item
+                                onClick={() => {
+                                  setActionZone(zone);
+                                  setConvertModalOpen(true);
+                                }}
+                              >
+                                {t('zones.convertZone')}
+                              </Menu.Item>
+                            )}
+                            {canClone(zone.type) && (
+                              <Menu.Item
+                                onClick={() => {
+                                  setActionZone(zone);
+                                  setCloneModalOpen(true);
+                                }}
+                              >
+                                {t('zones.cloneZone')}
+                              </Menu.Item>
+                            )}
+                            {!zone.internal && (
+                              <Menu.Item
+                                onClick={() => {
+                                  setActionZone(zone);
+                                  setPermsModalOpen(true);
+                                }}
+                              >
+                                {t('zones.permissions')}
+                              </Menu.Item>
+                            )}
+                            {canShowOptions(zone.type) && (
+                              <Menu.Item
+                                onClick={() => {
+                                  setActionZone(zone);
+                                  setOptionsModalOpen(true);
+                                }}
+                              >
+                                {t('zones.zoneOptions')}
+                              </Menu.Item>
+                            )}
+                            {!zone.internal && (
+                              <>
+                                <Menu.Divider />
+                                <Menu.Item
+                                  leftSection={<IconTrash size={14} />}
+                                  color="red"
+                                  onClick={() => {
+                                    setZoneToDelete(zone.name);
+                                    setDeleteModalOpen(true);
+                                  }}
+                                >
+                                  {t('common.delete')}
+                                </Menu.Item>
+                              </>
+                            )}
+                          </Menu.Dropdown>
+                        </Menu>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
               </Table.Tbody>
             </Table>
 
@@ -392,7 +639,7 @@ export function ZonesPage() {
                 </Text>
                 <Pagination
                   value={page}
-                  onChange={handlePageChange}
+                  onChange={onPageChange}
                   total={data.totalPages}
                   size="sm"
                 />
@@ -402,87 +649,47 @@ export function ZonesPage() {
         )}
       </Paper>
 
-      {/* Add Zone Modal */}
-      <Modal
+      <AddZoneModal
         opened={addZoneModalOpen}
         onClose={() => setAddZoneModalOpen(false)}
-        title={t('zones.addZone')}
-        size="md"
-      >
-        <Stack>
-          <Tabs value={newZoneType} onChange={value => setNewZoneType(value as ZoneType)}>
-            <Tabs.List>
-              <Tabs.Tab value="Primary">{t('zones.types.Primary')}</Tabs.Tab>
-              <Tabs.Tab value="Secondary">{t('zones.types.Secondary')}</Tabs.Tab>
-              <Tabs.Tab value="Stub">{t('zones.types.Stub')}</Tabs.Tab>
-              <Tabs.Tab value="Forwarder">{t('zones.types.Forwarder')}</Tabs.Tab>
-            </Tabs.List>
+        onSuccess={handleAddZoneSuccess}
+      />
 
-            <Tabs.Panel value="Primary" pt="md">
-              <Stack>
-                <TextInput
-                  label={t('zones.name')}
-                  placeholder="example.com"
-                  value={newZoneName}
-                  onChange={e => setNewZoneName(e.target.value)}
-                  required
-                />
-                <Text size="sm" c="dimmed">
-                  {t('zones.addPrimaryHint')}
-                </Text>
-              </Stack>
-            </Tabs.Panel>
+      {actionZone && (
+        <>
+          <ImportZoneModal
+            zone={actionZone.name}
+            opened={importModalOpen}
+            onClose={() => setImportModalOpen(false)}
+            onSuccess={handleZoneActionSuccess}
+          />
+          <CloneZoneModal
+            zone={actionZone.name}
+            opened={cloneModalOpen}
+            onClose={() => setCloneModalOpen(false)}
+            onSuccess={handleZoneActionSuccess}
+          />
+          <ConvertZoneModal
+            zone={actionZone.name}
+            zoneType={actionZone.type}
+            opened={convertModalOpen}
+            onClose={() => setConvertModalOpen(false)}
+            onSuccess={handleZoneActionSuccess}
+          />
+          <ZoneOptionsModal
+            zone={actionZone.name}
+            opened={optionsModalOpen}
+            onClose={() => setOptionsModalOpen(false)}
+            onSuccess={handleZoneActionSuccess}
+          />
+          <PermissionsModal
+            zone={actionZone.name}
+            opened={permsModalOpen}
+            onClose={() => setPermsModalOpen(false)}
+          />
+        </>
+      )}
 
-            <Tabs.Panel value="Secondary" pt="md">
-              <Stack>
-                <TextInput
-                  label={t('zones.name')}
-                  placeholder="example.com"
-                  value={newZoneName}
-                  onChange={e => setNewZoneName(e.target.value)}
-                  required
-                />
-                <TextInput label={t('zones.primaryNsAddresses')} placeholder="1.2.3.4" />
-              </Stack>
-            </Tabs.Panel>
-
-            <Tabs.Panel value="Stub" pt="md">
-              <Stack>
-                <TextInput
-                  label={t('zones.name')}
-                  placeholder="example.com"
-                  value={newZoneName}
-                  onChange={e => setNewZoneName(e.target.value)}
-                  required
-                />
-                <TextInput label={t('zones.primaryNsAddresses')} placeholder="1.2.3.4" />
-              </Stack>
-            </Tabs.Panel>
-
-            <Tabs.Panel value="Forwarder" pt="md">
-              <Stack>
-                <TextInput
-                  label={t('zones.name')}
-                  placeholder="example.com"
-                  value={newZoneName}
-                  onChange={e => setNewZoneName(e.target.value)}
-                  required
-                />
-                <TextInput label={t('zones.forwarder')} placeholder="8.8.8.8" />
-              </Stack>
-            </Tabs.Panel>
-          </Tabs>
-
-          <Group justify="flex-end" mt="md">
-            <Button variant="subtle" onClick={() => setAddZoneModalOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleCreateZone}>{t('zones.addZone')}</Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
       <Modal
         opened={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -494,7 +701,7 @@ export function ZonesPage() {
           <Button variant="subtle" onClick={() => setDeleteModalOpen(false)}>
             {t('common.cancel')}
           </Button>
-          <Button color="red" onClick={handleConfirmDelete}>
+          <Button color="red" onClick={() => zoneToDelete && handleDeleteZone(zoneToDelete)}>
             {t('common.delete')}
           </Button>
         </Group>

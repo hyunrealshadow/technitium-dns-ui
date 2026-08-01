@@ -32,13 +32,49 @@ export interface LoginResponse {
 
 export class ApiClient {
   private baseUrl = '/api';
-  private token: string | null = null;
+  private token: string | null;
+
+  constructor() {
+    try {
+      const session = localStorage.getItem('session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        this.token = parsed?.token || null;
+      } else {
+        this.token = null;
+      }
+    } catch {
+      this.token = null;
+    }
+  }
 
   setToken(token: string | null) {
     this.token = token;
+    if (token) {
+      try {
+        const session = localStorage.getItem('session');
+        if (session) {
+          const parsed = JSON.parse(session);
+          parsed.token = token;
+          localStorage.setItem('session', JSON.stringify(parsed));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   getToken(): string | null {
+    if (this.token) return this.token;
+    try {
+      const session = localStorage.getItem('session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        this.token = parsed?.token || null;
+      }
+    } catch {
+      /* ignore */
+    }
     return this.token;
   }
 
@@ -58,6 +94,7 @@ export class ApiClient {
 
     const data = (await response.json()) as ApiResponse<T>;
     if (data.status === 'invalid-token') {
+      this.token = null;
       localStorage.removeItem('session');
       await router.navigate({
         to: '/login',

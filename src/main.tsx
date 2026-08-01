@@ -1,10 +1,10 @@
-import React, {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import {MantineProvider} from '@mantine/core';
-import {Notifications} from '@mantine/notifications';
-import {Provider as JotaiProvider, useAtom} from 'jotai';
-import {RouterProvider} from '@tanstack/react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import React, { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { Provider as JotaiProvider, useAtom } from 'jotai';
+import { RouterProvider } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import './i18n';
 
@@ -13,10 +13,10 @@ import '@mantine/charts/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
 
-import {colorModeAtom} from './store/theme';
-import {sessionAtom} from './store/auth';
-import {apiClient} from './api/client';
-import {router} from './router.ts';
+import { colorModeAtom } from './store/theme';
+import { sessionAtom } from './store/auth';
+import { apiClient } from './api/client';
+import { router } from './router.ts';
 
 // 创建 query client
 const queryClient = new QueryClient({

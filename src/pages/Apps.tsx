@@ -1,8 +1,20 @@
-import {useEffect, useState} from 'react';
-import {Accordion, Badge, Button, Card, Grid, Group, Loader, Paper, Stack, Text, Title,} from '@mantine/core';
-import {IconDownload, IconPlus, IconTrash} from '@tabler/icons-react';
-import {apiClient} from '../api/client';
-import {notifications} from '@mantine/notifications';
+import { useEffect, useState } from 'react';
+import {
+  Accordion,
+  Badge,
+  Button,
+  Card,
+  Grid,
+  Group,
+  Loader,
+  Paper,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
+import { IconDownload, IconPlus, IconTrash } from '@tabler/icons-react';
+import { apiClient } from '../api/client';
+import { notifications } from '@mantine/notifications';
 
 interface DnsApp {
   classPath: string;

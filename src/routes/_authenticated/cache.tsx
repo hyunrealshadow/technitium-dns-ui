@@ -1,5 +1,5 @@
-import {createFileRoute} from '@tanstack/react-router';
-import {Paper, Text, Title} from '@mantine/core';
+import { createFileRoute } from '@tanstack/react-router';
+import { Paper, Text, Title } from '@mantine/core';
 
 function CachePage() {
   return (

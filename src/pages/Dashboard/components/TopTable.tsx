@@ -1,9 +1,19 @@
-import {useState} from 'react';
-import {ActionIcon, Badge, Group, Menu, Paper, ScrollArea, Table, Text, Title,} from '@mantine/core';
-import {IconBan, IconCheck, IconDotsVertical, IconEye, IconSearch} from '@tabler/icons-react';
-import {useTranslation} from 'react-i18next';
-import type {TopClientStats, TopStats} from '../types';
-import {formatNumber} from '../utils.ts';
+import { useState } from 'react';
+import {
+  ActionIcon,
+  Badge,
+  Group,
+  Menu,
+  Paper,
+  ScrollArea,
+  Table,
+  Text,
+  Title,
+} from '@mantine/core';
+import { IconBan, IconCheck, IconDotsVertical, IconEye, IconSearch } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
+import type { TopClientStats, TopStats } from '../types';
+import { formatNumber } from '../utils.ts';
 
 interface TopTableProps {
   title: string;

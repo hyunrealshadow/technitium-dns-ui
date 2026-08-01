@@ -1,6 +1,6 @@
-import {Badge, Group, Paper, ScrollArea, Text, Title} from '@mantine/core';
-import {LineChart} from '@mantine/charts';
-import {useTranslation} from 'react-i18next';
+import { Badge, Group, Paper, ScrollArea, Text, Title } from '@mantine/core';
+import { LineChart } from '@mantine/charts';
+import { useTranslation } from 'react-i18next';
 
 interface ChartCardProps {
   title: string;

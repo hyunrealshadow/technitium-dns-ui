@@ -1,13 +1,13 @@
-import {AppShell, Avatar, Burger, Group, Menu, Text, Title} from '@mantine/core';
-import {useDisclosure} from '@mantine/hooks';
-import {useAtom} from 'jotai';
-import {useTranslation} from 'react-i18next';
-import {sessionAtom} from '../../store/auth';
-import {useNavigate} from '@tanstack/react-router';
-import {apiClient} from '../../api/client';
-import {NavLinks} from './NavLinks';
-import {AppearanceModal} from '../AppearanceModal.tsx';
-import {IconPalette} from '@tabler/icons-react';
+import { AppShell, Avatar, Burger, Group, Menu, Text, Title } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { useAtom } from 'jotai';
+import { useTranslation } from 'react-i18next';
+import { sessionAtom } from '../../store/auth';
+import { useNavigate } from '@tanstack/react-router';
+import { apiClient } from '../../api/client';
+import { NavLinks } from './NavLinks';
+import { AppearanceModal } from '../AppearanceModal.tsx';
+import { IconPalette } from '@tabler/icons-react';
 
 interface MainLayoutProps {
   children: React.ReactNode;

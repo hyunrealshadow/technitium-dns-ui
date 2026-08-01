@@ -1,5 +1,3 @@
-// Types for Zones
-
 export type ZoneType =
   | 'Primary'
   | 'Secondary'
@@ -9,7 +7,9 @@ export type ZoneType =
   | 'SecondaryCatalog'
   | 'ForwarderCatalog'
   | 'Hint'
-  | 'Cache';
+  | 'Cache'
+  | 'Catalog'
+  | 'Internal';
 
 export interface ZoneInfo {
   name: string;
@@ -47,7 +47,43 @@ export interface CreateZoneRequest {
   forwarderProtocol?: string;
   forwarderDnssecValidation?: string;
   forwarderProxy?: string;
-  catalog?: string;
   importZoneFile?: boolean;
   useSoaSerialDateScheme?: boolean;
+}
+
+export interface ZoneRecord {
+  name: string;
+  nameIdn?: string;
+  type: string;
+  ttl: number;
+  ttlString: string;
+  disabled: boolean;
+  comments?: string;
+  rData: Record<string, unknown>;
+}
+
+export interface ZoneDetailResponse {
+  zone: ZoneInfo & { displayName?: string };
+  records: ZoneRecord[];
+}
+
+export interface AddRecordParams {
+  zone: string;
+  domain: string;
+  type: string;
+  ttl?: string;
+  overwrite?: boolean;
+  comments?: string;
+  [key: string]: unknown;
+}
+
+export interface UpdateRecordParams {
+  zone: string;
+  domain: string;
+  type: string;
+  ttl?: string;
+  disable?: boolean;
+  comments?: string;
+  newDomain?: string;
+  [key: string]: unknown;
 }
