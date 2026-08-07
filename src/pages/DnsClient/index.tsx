@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Accordion,
   Autocomplete,
@@ -9,7 +9,6 @@ import {
   Paper,
   Select,
   Stack,
-  Table,
   Tabs,
   Text,
   TextInput,
@@ -22,238 +21,18 @@ import {
   codeMirrorFontTheme,
   codeMirrorLightTheme,
   foldGutterExtension,
-} from '../utils/codeMirror';
-import { getRcodeColor } from '../utils/rcode';
+} from '../../utils/codeMirror';
+import { getRcodeColor } from '../../utils/rcode';
 import { useTranslation } from 'react-i18next';
 import { useSearch } from '@tanstack/react-router';
 import { useAtom } from 'jotai';
-import { success, error, warning } from '../components/notifications';
-import { apiClient } from '../api/client';
-import { colorModeAtom, resolveColorMode } from '../store/theme';
-
-const DNS_RECORD_TYPES = [
-  'A',
-  'NS',
-  'CNAME',
-  'SOA',
-  'PTR',
-  'MX',
-  'TXT',
-  'RP',
-  'AAAA',
-  'SRV',
-  'NAPTR',
-  'DNAME',
-  'DS',
-  'SSHFP',
-  'RRSIG',
-  'NSEC',
-  'DNSKEY',
-  'NSEC3',
-  'NSEC3PARAM',
-  'TLSA',
-  'ZONEMD',
-  'SVCB',
-  'HTTPS',
-  'URI',
-  'CAA',
-  'ANY',
-  'AXFR',
-  'ANAME',
-];
-
-const DNS_PROTOCOLS = ['UDP', 'TCP', 'TLS', 'HTTPS', 'QUIC'];
-
-interface ServerListItem {
-  name?: string;
-  addresses: string[];
-}
-
-interface DnsMetadata {
-  NameServer?: string;
-  Protocol?: string;
-  DatagramSize?: string;
-  RoundTripTime?: string;
-}
-
-interface DnsResponseRecord {
-  Name: string;
-  NameIDN?: string;
-  Type: string;
-  Class?: string;
-  TTL?: string;
-  RDLENGTH?: string;
-  RDATA?: Record<string, unknown>;
-  DnssecStatus?: string;
-}
-
-interface DnsQueryResult {
-  Metadata?: DnsMetadata;
-  EDNS?: Record<string, unknown>;
-  RCODE?: string;
-  AuthoritativeAnswer?: boolean;
-  Truncation?: boolean;
-  RecursionAvailable?: boolean;
-  AuthenticData?: boolean;
-  Question?: { Name: string; NameIDN?: string; Type: string; Class: string }[];
-  Answer?: DnsResponseRecord[];
-  Authority?: DnsResponseRecord[];
-  Additional?: DnsResponseRecord[];
-}
-
-interface ResolveResponse {
-  result: DnsQueryResult;
-  rawResponses?: Record<string, unknown>[];
-  warningMessage?: string;
-}
-
-// 表格内 dot Badge 固定 body 背景，避免行 hover 高亮时 badge 融入行背景
-const DOT_BADGE_STYLE = { backgroundColor: 'var(--mantine-color-body)' };
-
-const RECORD_TYPE_COLORS: Record<string, string> = {
-  A: 'blue',
-  AAAA: 'blue',
-  NS: 'green',
-  CNAME: 'violet',
-  MX: 'orange',
-  TXT: 'teal',
-  SOA: 'red',
-  SRV: 'pink',
-  PTR: 'cyan',
-  CAA: 'grape',
-  DS: 'indigo',
-  SSHFP: 'indigo',
-  TLSA: 'indigo',
-  HTTPS: 'yellow',
-  SVCB: 'yellow',
-  DNAME: 'violet',
-  RP: 'orange',
-  NAPTR: 'pink',
-  DNSKEY: 'dark',
-  RRSIG: 'dark',
-  NSEC: 'dark',
-  NSEC3: 'dark',
-  NSEC3PARAM: 'dark',
-  URI: 'yellow',
-  ANAME: 'violet',
-  FWD: 'teal',
-  APP: 'grape',
-  ZONEMD: 'dark',
-  OPT: 'gray',
-};
-
-// 按 DnsDatagram 序列化的 RDATA 字段名格式化（与区域接口的字段名不同）
-function formatRData(rdata: Record<string, unknown> | undefined): string {
-  if (!rdata) return '';
-  const s = (v: unknown) => String(v ?? '');
-  if (rdata.IPAddress) return s(rdata.IPAddress);
-  if (rdata.NameServer) return s(rdata.NameServerIDN || rdata.NameServer);
-  if (rdata.Domain) return s(rdata.DomainIDN || rdata.Domain);
-  if (rdata.Preference != null && rdata.Exchange)
-    return `[${s(rdata.Preference)}] ${s(rdata.ExchangeIDN || rdata.Exchange)}`;
-  if (rdata.Priority != null && rdata.Target)
-    return `[${s(rdata.Priority)}|${s(rdata.Weight ?? 0)}|${s(rdata.Port ?? 0)}] ${s(
-      rdata.TargetIDN || rdata.Target
-    )}`;
-  if (rdata.PrimaryNameServer) {
-    return `[${s(rdata.PrimaryNameServerIDN || rdata.PrimaryNameServer)}] ${s(
-      rdata.ResponsiblePerson
-    )} (${s(rdata.Serial)} ${s(rdata.Refresh)} ${s(rdata.Retry)} ${s(rdata.Expire)} ${s(
-      rdata.Minimum
-    )})`;
-  }
-  if (rdata.Mailbox) return `${s(rdata.Mailbox)} ${s(rdata.TxtDomain ?? '')}`.trim();
-  if (rdata.Order != null)
-    return `${s(rdata.Order)} ${s(rdata.Preference)} "${s(rdata.Flags)}" "${s(
-      rdata.Services
-    )}" "${s(rdata.Regexp)}" ${s(rdata.Replacement)}`;
-  if (rdata.Text != null) {
-    if (Array.isArray(rdata.CharacterStrings))
-      return (rdata.CharacterStrings as string[]).join(' ');
-    return s(rdata.Text);
-  }
-  if (rdata.Algorithm != null && rdata.Fingerprint != null)
-    return `${s(rdata.Algorithm)} ${s(rdata.FingerprintType)} ${s(rdata.Fingerprint)}`;
-  if (rdata.CertificateUsage != null)
-    return `${s(rdata.CertificateUsage)} ${s(rdata.Selector)} ${s(
-      rdata.MatchingType
-    )} ${s(rdata.CertificateAssociationData)}`;
-  if (rdata.Flags != null && rdata.Tag != null)
-    return `${s(rdata.Flags)} ${s(rdata.Tag)} "${s(rdata.Value)}"`;
-  return JSON.stringify(rdata);
-}
-
-// OPT 记录（EDNS）的数据列：从 result.EDNS 取负载/版本等信息，RDATA 只有 Options 数组
-function formatOptData(
-  edns: Record<string, unknown> | undefined,
-  rdata: Record<string, unknown> | undefined
-): string {
-  const parts: string[] = [];
-  if (edns) {
-    if (edns.UdpPayloadSize != null) parts.push(`udp: ${edns.UdpPayloadSize}`);
-    if (edns.Version != null) parts.push(`version: ${edns.Version}`);
-    if (edns.Flags) parts.push(`flags: ${edns.Flags}`);
-  }
-  const options = Array.isArray(rdata?.Options) ? (rdata.Options as unknown[]) : [];
-  if (options.length > 0) parts.push(`options: ${options.length}`);
-  return parts.length > 0 ? parts.join(', ') : 'EDNS';
-}
-
-function DnsRecordTable({
-  records,
-  dotBadgeStyle,
-  edns,
-}: {
-  records: DnsResponseRecord[];
-  dotBadgeStyle: CSSProperties;
-  edns?: Record<string, unknown>;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Table striped highlightOnHover>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
-          <Table.Th>{t('zones.recordName')}</Table.Th>
-          <Table.Th style={{ width: 180 }}>{t('zones.recordTTL')}</Table.Th>
-          <Table.Th>{t('zones.recordData')}</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {records.map((record, i) => (
-          <Table.Tr key={`${record.Name}-${record.Type}-${i}`}>
-            <Table.Td>
-              <Badge
-                color={RECORD_TYPE_COLORS[record.Type] || 'gray'}
-                variant="dot"
-                size="sm"
-                tt="none"
-                style={dotBadgeStyle}
-              >
-                {record.Type}
-              </Badge>
-            </Table.Td>
-            <Table.Td>
-              <Text size="sm" style={{ maxWidth: 280 }} truncate="end">
-                {record.NameIDN || record.Name}
-              </Text>
-            </Table.Td>
-            <Table.Td>
-              <Text size="sm">{record.TTL}</Text>
-            </Table.Td>
-            <Table.Td>
-              <Text size="sm" style={{ maxWidth: 400 }} truncate="end">
-                {record.Type === 'OPT'
-                  ? formatOptData(edns, record.RDATA)
-                  : formatRData(record.RDATA)}
-              </Text>
-            </Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
-  );
-}
+import { success, error, warning } from '../../components/notifications';
+import { apiClient } from '../../api/client';
+import { colorModeAtom, resolveColorMode } from '../../store/theme';
+import type { DnsQueryResult, ResolveResponse, ServerListItem } from './types';
+import { DNS_RECORD_TYPES, DNS_PROTOCOLS, DOT_BADGE_STYLE } from './constants';
+import { extractServer, sanitizeDomain } from './utils';
+import { DnsRecordTable } from './components/DnsRecordTable';
 
 export function DnsClientPage() {
   const { t } = useTranslation();
@@ -297,27 +76,6 @@ export function DnsClientPage() {
     }
     loadServerList();
   }, []);
-
-  const extractServer = (value: string): string => {
-    let v = value;
-    const i = v.indexOf('{');
-    if (i > -1) {
-      const j = v.lastIndexOf('}');
-      v = v.substring(i + 1, j);
-    }
-    return v.trim();
-  };
-
-  const sanitizeDomain = (value: string): string => {
-    let v = value;
-    const i = v.indexOf('://');
-    if (i > -1) {
-      let j = v.indexOf(':', i + 3);
-      if (j < 0) j = v.indexOf('/', i + 3);
-      v = j > -1 ? v.substring(i + 3, j) : v.substring(i + 3);
-    }
-    return v;
-  };
 
   const handleResolve = async (importRecords: boolean) => {
     const serverValue = extractServer(server);
