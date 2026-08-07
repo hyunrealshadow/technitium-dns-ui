@@ -20,3 +20,17 @@ const getInitialColorMode = (): ColorMode => {
 };
 
 export const colorModeAtom = atomWithStorage<ColorMode>('colorMode', getInitialColorMode());
+
+// 将颜色模式解析为实际生效的模式（auto 时按系统偏好解析）
+export function resolveColorMode(mode: ColorMode): 'light' | 'dark' {
+  if (mode === 'auto') {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
+      return 'dark';
+    }
+    return 'light';
+  }
+  return mode;
+}

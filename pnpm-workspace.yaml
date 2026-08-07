@@ -1,2 +1,6 @@
+allowBuilds:
+  esbuild: true
 ignoredBuiltDependencies:
   - esbuild
+minimumReleaseAgeExclude:
+  - '@mantine/core@9.5.1'

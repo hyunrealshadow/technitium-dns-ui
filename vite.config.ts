@@ -12,6 +12,10 @@ export default defineConfig({
         target: 'http://localhost:5380',
         changeOrigin: true,
       },
+      '/json': {
+        target: 'http://localhost:5380',
+        changeOrigin: true,
+      },
     },
   },
   build: {

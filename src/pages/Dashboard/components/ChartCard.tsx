@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 interface ChartCardProps {
   title: string;
-  data: any[];
+  data: Record<string, unknown>[];
   dataKey: string;
   series: Array<{ name: string; color: string; labelKey: string }>;
   activeSeries?: string[];

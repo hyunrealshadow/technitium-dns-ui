@@ -12,6 +12,16 @@ export function success(title: string, message: string) {
   });
 }
 
+export function warning(title: string, message: string) {
+  notifications.show({
+    title,
+    message,
+    color: 'yellow',
+    autoClose: 5000,
+    position: 'top-center',
+  });
+}
+
 export function error(title: string, message: string, domain?: string) {
   notifications.show({
     title,

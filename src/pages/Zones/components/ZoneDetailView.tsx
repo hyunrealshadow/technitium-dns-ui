@@ -20,17 +20,19 @@ import {
 import {
   IconArrowLeft,
   IconCheck,
-  IconEdit,
+  IconEye,
+  IconEyeOff,
   IconPlus,
   IconRefresh,
   IconSearch,
-  IconTrash,
   IconX,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useAtom } from 'jotai';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import type { ZoneDetailResponse, ZoneRecord, ZoneInfo } from '../types';
 import { AddRecordModal } from './AddRecordModal';
 import {
@@ -44,6 +46,9 @@ import {
   DnssecPropertiesModal,
   PermissionsModal,
 } from './ZoneModals';
+
+// 表格内 dot Badge 固定 body 背景，避免行 hover 高亮时 badge 融入行背景；文本光标便于选中复制
+const DOT_BADGE_STYLE = { backgroundColor: 'var(--mantine-color-body)', cursor: 'text' };
 
 const RECORD_TYPE_COLORS: Record<string, string> = {
   A: 'blue',
@@ -82,12 +87,21 @@ interface ZoneDetailViewProps {
 
 export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
   const { t } = useTranslation();
+  const [colorMode] = useAtom(colorModeAtom);
+  const isDark = resolveColorMode(colorMode) === 'dark';
+  const dotBadgeStyle = {
+    ...DOT_BADGE_STYLE,
+    ...(isDark ? { border: '1px solid var(--mantine-color-dark-4)' } : {}),
+  };
 
   // State
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [recordsPage, setRecordsPage] = useState(1);
-  const [recordsPerPage] = useState(20);
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const [hideDnssecRecords, setHideDnssecRecords] = useState(
+    () => localStorage.getItem('zoneHideDnssecRecords') === 'true'
+  );
 
   // Add Record modal
   const [addRecordOpen, setAddRecordOpen] = useState(false);
@@ -96,6 +110,10 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
   // Delete Record modal
   const [deleteRecordOpen, setDeleteRecordOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<ZoneRecord | null>(null);
+
+  // Disable Record confirm modal
+  const [disableRecordOpen, setDisableRecordOpen] = useState(false);
+  const [recordToDisable, setRecordToDisable] = useState<ZoneRecord | null>(null);
 
   // Modal states
   const [importOpen, setImportOpen] = useState(false);
@@ -116,7 +134,7 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
         `/zones/records/get?domain=${encodeURIComponent(zone)}&zone=${encodeURIComponent(zone)}&listZone=true`
       );
       if (response.status !== 'ok' || !response.response) {
-        throw new Error(response.errorMessage || 'Failed to fetch zone detail');
+        throw new Error(response.errorMessage || t('zones.detailLoadFailed'));
       }
       return response.response;
     },
@@ -209,12 +227,62 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
     ].includes(zoneType);
   };
 
-  // Filter records
+  const dnssecRecordTypes = ['RRSIG', 'NSEC', 'DNSKEY', 'NSEC3', 'NSEC3PARAM'];
+
+  // Record action visibility (mirrors original getZoneRecordRowHtml logic)
+  const hideRecordActions = (record: ZoneRecord): boolean => {
+    if (
+      ['Internal', 'Secondary', 'SecondaryForwarder', 'SecondaryCatalog', 'Stub'].includes(zoneType)
+    )
+      return true;
+
+    if (zoneType === 'Catalog') {
+      return record.type !== 'SOA';
+    }
+
+    return dnssecRecordTypes.includes(record.type) || record.type === 'ZONEMD';
+  };
+
+  const disableRecordStateButtons = (record: ZoneRecord): boolean => {
+    return record.type === 'SOA';
+  };
+
+  // Filter records (mirrors original showEditZonePage logic: @ = apex, * / ? wildcards, case-insensitive)
   const filteredRecords = records.filter(r => {
-    const matchesSearch = r.name.toLowerCase().includes(searchText.toLowerCase());
+    if (hideDnssecRecords && dnssecRecordTypes.includes(r.type)) return false;
+
     const matchesType = filterType === 'all' || r.type === filterType;
-    return matchesSearch && matchesType;
+    if (!matchesType) return false;
+
+    const query = searchText.trim().toLowerCase();
+    if (!query) return true;
+
+    let filterDomain = query;
+    if (zone === '.') {
+      if (filterDomain === '@') filterDomain = '';
+    } else {
+      if (filterDomain === '@') filterDomain = zone;
+      else filterDomain += '.' + zone;
+    }
+
+    const recordName = r.name.toLowerCase();
+    if (query.includes('*') || query.includes('?')) {
+      let regexStr = filterDomain.replace(/\./g, '\\.');
+      regexStr = regexStr.replace(/\*/g, '.*');
+      regexStr = regexStr.replace(/\?/g, '.');
+      if (regexStr.startsWith('.*\\.')) regexStr = '\\*' + regexStr.substring(2);
+      return new RegExp('^' + regexStr + '$').test(recordName);
+    }
+
+    return recordName === filterDomain;
   });
+
+  const toggleHideDnssecRecords = () => {
+    const newValue = !hideDnssecRecords;
+    setHideDnssecRecords(newValue);
+    localStorage.setItem('zoneHideDnssecRecords', String(newValue));
+    setRecordsPage(1);
+  };
 
   // Paginate records
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / recordsPerPage));
@@ -293,6 +361,35 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
     }
   };
 
+  const handleToggleRecordState = async (record: ZoneRecord, disable: boolean) => {
+    if (disable) {
+      setRecordToDisable(record);
+      setDisableRecordOpen(true);
+      return;
+    }
+    await doToggleRecordState(record, false);
+  };
+
+  const doToggleRecordState = async (record: ZoneRecord, disable: boolean) => {
+    try {
+      await apiClient.post('/zones/records/update', {
+        zone,
+        domain: record.name,
+        type: record.type,
+        ttl: record.ttl,
+        disable,
+        comments: record.comments,
+        ...record.rData,
+      });
+      success(t('common.success'), disable ? t('zones.recordDisabled') : t('zones.recordEnabled'));
+      setDisableRecordOpen(false);
+      setRecordToDisable(null);
+      await refetch();
+    } catch {
+      error(t('common.error'), t('zones.recordStateUpdateFailed'));
+    }
+  };
+
   const handleRecordAdded = async () => {
     setAddRecordOpen(false);
     await refetch();
@@ -337,159 +434,204 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Group>
-          <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={onBack}>
-            {t('zones.backToZones')}
-          </Button>
-        </Group>
-        <Button
-          leftSection={<IconRefresh size={16} />}
-          onClick={() => refetch()}
-          loading={isLoading}
-        >
-          {t('common.refresh')}
+      <Group>
+        <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={onBack}>
+          {t('zones.backToZones')}
         </Button>
       </Group>
 
-      {/* Zone Info Header */}
+      {/* Zone Info Header + Actions */}
       <Paper shadow="sm" p="md" withBorder>
-        <Group justify="space-between" wrap="wrap">
-          <Group gap="xs">
-            <Title order={3}>{zoneInfo.nameIdn || zoneInfo.name}</Title>
-            <Badge color={isInternal ? 'gray' : 'blue'} variant="light">
-              {zoneType}
-            </Badge>
-            {getDnssecStatus() && (
-              <Badge color={zoneInfo.hasDnssecPrivateKeys ? 'blue' : 'gray'} variant="light">
-                DNSSEC
+        <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
+          <Stack gap={6}>
+            <Group gap="xs">
+              <Title order={3} style={{ margin: 0 }}>
+                {zoneInfo.nameIdn || zoneInfo.name}
+              </Title>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={() => refetch()}
+                loading={isLoading}
+              >
+                <IconRefresh size={18} />
+              </ActionIcon>
+            </Group>
+            <Group gap="xs">
+              <Badge
+                color={isInternal ? 'gray' : 'blue'}
+                variant="dot"
+                size="sm"
+                tt="none"
+                style={dotBadgeStyle}
+              >
+                {isInternal ? t('zones.internal') : t(`zones.types.${zoneType}`)}
               </Badge>
-            )}
-            <Badge color={getStatusColor(status)} variant="light">
-              {status}
-            </Badge>
-            {zoneInfo.catalog && (
-              <Badge color="gray" variant="light">
-                {zoneInfo.catalog}
-              </Badge>
-            )}
-            {isInternal && (
-              <Badge color="gray" variant="light">
-                {t('zones.internal')}
-              </Badge>
-            )}
-          </Group>
-          {zoneInfo.expiry && (
-            <Text size="sm" c="dimmed">
-              {t('zones.expiry')}: {new Date(zoneInfo.expiry).toLocaleString()}
-            </Text>
-          )}
-        </Group>
-      </Paper>
-
-      {/* Action Buttons */}
-      <Paper shadow="sm" p="md" withBorder>
-        <Group gap="sm" wrap="wrap">
-          {canAddRecord() && (
-            <Button
-              leftSection={<IconPlus size={14} />}
-              size="sm"
-              onClick={() => setAddRecordOpen(true)}
-            >
-              {t('zones.add')}
-            </Button>
-          )}
-
-          {!isInternal && (
-            <>
-              {zoneInfo.disabled ? (
-                <Button
-                  leftSection={<IconCheck size={14} />}
+              {getDnssecStatus() && (
+                <Badge
+                  color={zoneInfo.hasDnssecPrivateKeys ? 'blue' : 'gray'}
+                  variant="dot"
                   size="sm"
-                  color="green"
-                  onClick={handleEnable}
+                  tt="none"
+                  style={dotBadgeStyle}
                 >
-                  {t('zones.enable')}
-                </Button>
-              ) : (
-                <Button
-                  leftSection={<IconX size={14} />}
-                  size="sm"
-                  color="orange"
-                  onClick={handleDisable}
-                >
-                  {t('zones.disable')}
-                </Button>
+                  {t('zones.dnssec')}
+                </Badge>
               )}
-            </>
-          )}
+              <Badge
+                color={getStatusColor(status)}
+                variant="dot"
+                size="sm"
+                tt="none"
+                style={dotBadgeStyle}
+              >
+                {t(`zones.status.${status}`)}
+              </Badge>
+              {zoneInfo.catalog && (
+                <Badge color="gray" variant="dot" size="sm" tt="none" style={dotBadgeStyle}>
+                  {zoneInfo.catalog}
+                </Badge>
+              )}
+            </Group>
+            {zoneInfo.expiry && (
+              <Text size="xs" fw={600}>
+                {t('zones.expiry')}: {new Date(zoneInfo.expiry).toLocaleString()}
+              </Text>
+            )}
+          </Stack>
 
-          {canResync() && (
-            <Button leftSection={<IconRefresh size={14} />} size="sm" onClick={handleResync}>
-              {t('zones.resync')}
-            </Button>
-          )}
-
-          <Menu shadow="md">
-            <Menu.Target>
-              <Button size="sm" variant="default">
-                {t('zones.options')}
+          <Group gap="sm" wrap="wrap">
+            {canAddRecord() && (
+              <Button
+                leftSection={<IconPlus size={14} />}
+                size="sm"
+                onClick={() => setAddRecordOpen(true)}
+              >
+                {t('zones.add')}
               </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              {canImport() && (
-                <Menu.Item onClick={() => setImportOpen(true)}>{t('common.import')}</Menu.Item>
-              )}
-              {canExport() && (
-                <Menu.Item onClick={handleExportZone}>{t('common.export')}</Menu.Item>
-              )}
-              {canConvert() && (
-                <Menu.Item onClick={() => setConvertOpen(true)}>{t('zones.convertZone')}</Menu.Item>
-              )}
-              {canClone() && (
-                <Menu.Item onClick={() => setCloneOpen(true)}>{t('zones.cloneZone')}</Menu.Item>
-              )}
-              {canShowOptions() && (
-                <Menu.Item onClick={() => setOptionsOpen(true)}>{t('zones.zoneOptions')}</Menu.Item>
-              )}
-            </Menu.Dropdown>
-          </Menu>
+            )}
 
-          {!isInternal && (
-            <Button size="sm" variant="default" onClick={() => setPermsOpen(true)}>
-              {t('zones.permissions')}
-            </Button>
-          )}
+            {!isInternal && (
+              <>
+                {zoneInfo.disabled ? (
+                  <Button
+                    leftSection={<IconCheck size={14} />}
+                    size="sm"
+                    variant="default"
+                    onClick={handleEnable}
+                  >
+                    {t('zones.enable')}
+                  </Button>
+                ) : (
+                  <Button
+                    leftSection={<IconX size={14} />}
+                    size="sm"
+                    color="yellow"
+                    onClick={handleDisable}
+                  >
+                    {t('zones.disable')}
+                  </Button>
+                )}
+              </>
+            )}
 
-          {zoneType === 'Primary' && getDnssecStatus() && (
+            {canResync() && (
+              <Button leftSection={<IconRefresh size={14} />} size="sm" onClick={handleResync}>
+                {t('zones.resync')}
+              </Button>
+            )}
+
             <Menu shadow="md">
               <Menu.Target>
-                <Button size="sm" variant="default">
-                  DNSSEC
-                </Button>
+                <Button size="sm">{t('zones.options')}</Button>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item onClick={() => setSignOpen(true)}>Sign Zone</Menu.Item>
-                <Menu.Item onClick={() => setUnsignOpen(true)}>Unsign Zone</Menu.Item>
-                <Menu.Item onClick={() => setDsOpen(true)}>View DS Info</Menu.Item>
-                <Menu.Item onClick={() => setDnssecPropsOpen(true)}>Properties</Menu.Item>
+                {canImport() && (
+                  <Menu.Item onClick={() => setImportOpen(true)}>{t('common.import')}</Menu.Item>
+                )}
+                {canExport() && (
+                  <Menu.Item onClick={handleExportZone}>{t('common.export')}</Menu.Item>
+                )}
+                {canConvert() && (
+                  <Menu.Item onClick={() => setConvertOpen(true)}>
+                    {t('zones.convertZone')}
+                  </Menu.Item>
+                )}
+                {canClone() && (
+                  <Menu.Item onClick={() => setCloneOpen(true)}>{t('zones.cloneZone')}</Menu.Item>
+                )}
+                {canShowOptions() && (
+                  <Menu.Item onClick={() => setOptionsOpen(true)}>
+                    {t('zones.zoneOptions')}
+                  </Menu.Item>
+                )}
               </Menu.Dropdown>
             </Menu>
-          )}
 
-          {!isInternal && (
-            <Button size="sm" color="red" onClick={handleDeleteZone}>
-              {t('common.delete')}
-            </Button>
-          )}
+            {!isInternal && (
+              <Button size="sm" onClick={() => setPermsOpen(true)}>
+                {t('zones.permissions')}
+              </Button>
+            )}
+
+            {zoneType === 'Primary' && !getDnssecStatus() && (
+              <Button size="sm" onClick={() => setSignOpen(true)}>
+                {t('zones.signZone')}
+              </Button>
+            )}
+
+            {(zoneType === 'Primary' || zoneType === 'Secondary') && getDnssecStatus() && (
+              <Menu shadow="md">
+                <Menu.Target>
+                  <Button size="sm">{t('zones.dnssec')}</Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  {hideDnssecRecords ? (
+                    <Menu.Item
+                      leftSection={<IconEye size={14} />}
+                      onClick={toggleHideDnssecRecords}
+                    >
+                      {t('zones.showDnssecRecords')}
+                    </Menu.Item>
+                  ) : (
+                    <Menu.Item
+                      leftSection={<IconEyeOff size={14} />}
+                      onClick={toggleHideDnssecRecords}
+                    >
+                      {t('zones.hideDnssecRecords')}
+                    </Menu.Item>
+                  )}
+                  {zoneType === 'Primary' && (
+                    <>
+                      <Menu.Divider />
+                      <Menu.Item onClick={() => setUnsignOpen(true)}>
+                        {t('zones.unsignZone')}
+                      </Menu.Item>
+                      <Menu.Item onClick={() => setDsOpen(true)}>{t('zones.viewDsInfo')}</Menu.Item>
+                      <Menu.Item onClick={() => setDnssecPropsOpen(true)}>
+                        {t('zones.dnssecProperties')}
+                      </Menu.Item>
+                    </>
+                  )}
+                </Menu.Dropdown>
+              </Menu>
+            )}
+
+            {!isInternal && (
+              <Button size="sm" color="red" onClick={handleDeleteZone}>
+                {t('common.delete')}
+              </Button>
+            )}
+          </Group>
         </Group>
       </Paper>
 
       {/* Records Table */}
       <Paper shadow="sm" p="md" withBorder>
-        <Group mb="md">
+        <Group mb="md" align="end">
           <TextInput
-            placeholder={t('zones.searchPlaceholder')}
+            label={t('zones.recordName')}
+            placeholder={t('zones.recordSearchPlaceholder')}
             leftSection={<IconSearch size={16} />}
             value={searchText}
             onChange={e => {
@@ -499,6 +641,7 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
             style={{ flex: 1 }}
           />
           <Select
+            label={t('zones.recordType')}
             data={recordTypeOptions}
             value={filterType}
             onChange={value => {
@@ -506,6 +649,17 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
               setRecordsPage(1);
             }}
             w={150}
+          />
+          <Select
+            label={t('zones.recordsPerPage')}
+            data={['10', '25', '50', '100', '250', '500']}
+            value={String(recordsPerPage)}
+            onChange={value => {
+              setRecordsPerPage(Number(value || 10));
+              setRecordsPage(1);
+            }}
+            w={90}
+            allowDeselect={false}
           />
         </Group>
 
@@ -519,28 +673,59 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
           </Center>
         ) : (
           <>
+            <Group justify="space-between" mb="sm">
+              <Text size="sm">
+                {filteredRecords.length > 0
+                  ? t('zones.pagination.summary', {
+                      start: (currentPage - 1) * recordsPerPage + 1,
+                      end: Math.min(currentPage * recordsPerPage, filteredRecords.length),
+                      total: filteredRecords.length,
+                      page: currentPage,
+                      pages: totalPages,
+                    })
+                  : t('zones.zeroRecords')}
+              </Text>
+              {totalPages > 1 && (
+                <Pagination
+                  value={currentPage}
+                  onChange={setRecordsPage}
+                  total={totalPages}
+                  size="sm"
+                />
+              )}
+            </Group>
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
+                  <Table.Th style={{ width: 50 }}>#</Table.Th>
                   <Table.Th>{t('zones.recordName')}</Table.Th>
                   <Table.Th>{t('zones.recordType')}</Table.Th>
                   <Table.Th>{t('zones.recordTTL')}</Table.Th>
                   <Table.Th>{t('zones.recordData')}</Table.Th>
                   <Table.Th>{t('zones.recordStatus')}</Table.Th>
-                  <Table.Th style={{ width: 60 }}></Table.Th>
+                  <Table.Th style={{ minWidth: 220 }}></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {paginatedRecords.map((record, idx) => (
                   <Table.Tr key={`${record.name}-${record.type}-${idx}`}>
                     <Table.Td>
-                      <Text size="sm">{record.nameIdn || record.name}</Text>
+                      <Text size="sm" c="dimmed">
+                        {(currentPage - 1) * recordsPerPage + idx + 1}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" style={{ maxWidth: 280 }} truncate="end">
+                        {formatRecordName(record, zone)}
+                      </Text>
                     </Table.Td>
                     <Table.Td>
                       <Badge
                         color={RECORD_TYPE_COLORS[record.type] || 'gray'}
-                        variant="light"
+                        variant="dot"
                         size="sm"
+                        tt="none"
+                        style={dotBadgeStyle}
                       >
                         {record.type}
                       </Badge>
@@ -555,40 +740,69 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
                     </Table.Td>
                     <Table.Td>
                       {record.disabled ? (
-                        <Badge color="gray" size="sm" variant="light">
+                        <Badge color="gray" size="sm" variant="dot" tt="none" style={dotBadgeStyle}>
                           {t('common.disabled')}
                         </Badge>
                       ) : (
-                        <Badge color="green" size="sm" variant="light">
+                        <Badge
+                          color="green"
+                          size="sm"
+                          variant="dot"
+                          tt="none"
+                          style={dotBadgeStyle}
+                        >
                           {t('common.enabled')}
                         </Badge>
                       )}
                     </Table.Td>
                     <Table.Td>
-                      <Group gap={4}>
-                        <ActionIcon
-                          variant="subtle"
-                          color="blue"
-                          size="sm"
-                          onClick={() => {
-                            setEditRecord(record);
-                            setAddRecordOpen(true);
-                          }}
-                        >
-                          <IconEdit size={14} />
-                        </ActionIcon>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          size="sm"
-                          onClick={() => {
-                            setRecordToDelete(record);
-                            setDeleteRecordOpen(true);
-                          }}
-                        >
-                          <IconTrash size={14} />
-                        </ActionIcon>
-                      </Group>
+                      {hideRecordActions(record) ? (
+                        <Text size="sm" c="dimmed">
+                          &nbsp;
+                        </Text>
+                      ) : (
+                        <Group gap={4} wrap="nowrap">
+                          <Button
+                            size="xs"
+                            onClick={() => {
+                              setEditRecord(record);
+                              setAddRecordOpen(true);
+                            }}
+                          >
+                            {t('common.edit')}
+                          </Button>
+                          {record.disabled ? (
+                            <Button
+                              size="xs"
+                              variant="default"
+                              onClick={() => handleToggleRecordState(record, false)}
+                              disabled={disableRecordStateButtons(record)}
+                            >
+                              {t('zones.enable')}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="xs"
+                              color="yellow"
+                              onClick={() => handleToggleRecordState(record, true)}
+                              disabled={disableRecordStateButtons(record)}
+                            >
+                              {t('zones.disable')}
+                            </Button>
+                          )}
+                          <Button
+                            size="xs"
+                            color="red"
+                            onClick={() => {
+                              setRecordToDelete(record);
+                              setDeleteRecordOpen(true);
+                            }}
+                            disabled={disableRecordStateButtons(record)}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </Group>
+                      )}
                     </Table.Td>
                   </Table.Tr>
                 ))}
@@ -668,6 +882,41 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
         </Group>
       </Modal>
 
+      {/* Disable Record Confirm */}
+      <Modal
+        opened={disableRecordOpen}
+        onClose={() => {
+          setDisableRecordOpen(false);
+          setRecordToDisable(null);
+        }}
+        title={t('common.confirm')}
+        centered
+      >
+        <Text mb="lg">
+          {t('zones.confirmDisableRecord', {
+            type: recordToDisable?.type,
+            name: recordToDisable?.name || '.',
+          })}
+        </Text>
+        <Group justify="flex-end">
+          <Button
+            variant="subtle"
+            onClick={() => {
+              setDisableRecordOpen(false);
+              setRecordToDisable(null);
+            }}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            color="red"
+            onClick={() => recordToDisable && doToggleRecordState(recordToDisable, true)}
+          >
+            {t('zones.disable')}
+          </Button>
+        </Group>
+      </Modal>
+
       {/* Zone Modals */}
       <ImportZoneModal
         zone={zone}
@@ -737,6 +986,17 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
       <PermissionsModal zone={zone} opened={permsOpen} onClose={() => setPermsOpen(false)} />
     </Stack>
   );
+}
+
+function formatRecordName(record: ZoneRecord, zone: string): string {
+  const name = record.nameIdn || record.name || '';
+  if (name === '') return '.';
+  const lowerName = name.toLowerCase();
+  const lowerZone = zone.toLowerCase();
+  if (lowerName === lowerZone) return '@';
+  const i = lowerName.lastIndexOf('.' + lowerZone);
+  if (i > -1) return name.substring(0, i);
+  return name;
 }
 
 function formatRecordData(record: ZoneRecord): string {

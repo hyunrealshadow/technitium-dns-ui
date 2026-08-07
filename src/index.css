@@ -1,0 +1,143 @@
+/* ============================================================
+   全局视觉优化
+   ============================================================ */
+
+/* 浅色模式：给 body 一个极浅的蓝灰底色，让白色 Paper 卡片浮起来 */
+:root[data-mantine-color-scheme='light'] {
+  --mantine-color-body: #f3f5fa;
+}
+
+/* 深色模式：进一步加深底色，形成 body < navbar < paper 的层次 */
+:root[data-mantine-color-scheme='dark'] {
+  --mantine-color-body: #101218;
+}
+
+body {
+  transition: background-color 200ms ease;
+}
+
+/* ---------- 滚动条 ---------- */
+* {
+  scrollbar-width: thin;
+}
+
+:root[data-mantine-color-scheme='light'] * {
+  scrollbar-color: rgba(15, 23, 42, 0.22) transparent;
+}
+
+:root[data-mantine-color-scheme='dark'] * {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+:root[data-mantine-color-scheme='light'] ::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.18);
+}
+
+:root[data-mantine-color-scheme='light'] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 23, 42, 0.32);
+}
+
+:root[data-mantine-color-scheme='dark'] ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-mantine-color-scheme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.26);
+}
+
+/* ---------- 文本选中 ---------- */
+::selection {
+  background-color: rgba(59, 130, 246, 0.28);
+}
+
+/* ---------- 顶部 Header：毛玻璃 ---------- */
+.app-header {
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+
+:root[data-mantine-color-scheme='light'] .app-header {
+  background-color: rgba(255, 255, 255, 0.78);
+}
+
+:root[data-mantine-color-scheme='dark'] .app-header {
+  background-color: rgba(16, 18, 24, 0.72);
+}
+
+/* ---------- 侧边栏 ---------- */
+.app-navbar {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+:root[data-mantine-color-scheme='light'] .app-navbar {
+  background-color: #ffffff;
+}
+
+:root[data-mantine-color-scheme='dark'] .app-navbar {
+  background-color: var(--mantine-color-dark-7);
+}
+
+/* ---------- 品牌标识 ---------- */
+.brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ---------- 用户菜单按钮 ---------- */
+.user-menu-btn {
+  border-radius: 999px;
+  padding: 4px 10px 4px 4px;
+  transition: background-color 150ms ease;
+}
+
+.user-menu-btn:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+/* ---------- 登录页 ---------- */
+.login-shell {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.login-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 560px at 12% 8%, rgba(59, 130, 246, 0.16), transparent 62%),
+    radial-gradient(900px 520px at 88% 92%, rgba(6, 182, 212, 0.13), transparent 62%);
+}
+
+:root[data-mantine-color-scheme='dark'] .login-shell::before {
+  background:
+    radial-gradient(1100px 560px at 12% 8%, rgba(59, 130, 246, 0.2), transparent 62%),
+    radial-gradient(900px 520px at 88% 92%, rgba(6, 182, 212, 0.12), transparent 62%);
+}

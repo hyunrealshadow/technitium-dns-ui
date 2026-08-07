@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Title,
   Paper,
@@ -65,7 +65,7 @@ export function DashboardPage() {
       if (response.status === 'ok' && response.response) {
         return response.response;
       }
-      throw new Error(response.errorMessage || 'Failed to fetch dashboard data');
+      throw new Error(response.errorMessage || t('dashboard.loadFailed'));
     },
     refetchInterval: 10000,
     staleTime: 5000,
@@ -150,18 +150,18 @@ export function DashboardPage() {
     });
   };
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setActiveSeries(CHART_SERIES.map(s => s.name));
     setActiveResponseLabels(responseLabels);
     setActiveQueryTypeLabels(queryTypeLabels);
     setActiveProtocolLabels(protocolLabels);
-  };
+  }, [responseLabels, queryTypeLabels, protocolLabels]);
 
   // Action handlers
   const handleShowQueryLogs = async (domain: string | null, clientIp: string | null) => {
     // Navigate to the logs page with query params
     await navigate({
-      to: '/logs',
+      to: '/logs/query',
       search: {
         domain: domain || undefined,
         clientIp: clientIp || undefined,
@@ -221,7 +221,7 @@ export function DashboardPage() {
   // Tab change - clear filters
   useEffect(() => {
     clearAllFilters();
-  }, [statPeriod]);
+  }, [statPeriod, clearAllFilters]);
 
   // 管理骨架屏显示逻辑 - 只有在加载时间超过阈值时才显示
   useEffect(() => {

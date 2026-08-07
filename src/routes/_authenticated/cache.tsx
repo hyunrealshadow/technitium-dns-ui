@@ -1,19 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { createFileRoute } from '@tanstack/react-router';
-import { Paper, Text, Title } from '@mantine/core';
+import { Stack, Title } from '@mantine/core';
+import { ZoneBrowser, ZoneBrowserSearchSchema } from '../../components/ZoneBrowser';
 
 function CachePage() {
+  const { t } = useTranslation();
   return (
-    <div>
-      <Title order={2} mb="md">
-        缓存管理
-      </Title>
-      <Paper shadow="sm" p="xl" withBorder>
-        <Text c="dimmed">缓存管理功能正在开发中...</Text>
-      </Paper>
-    </div>
+    <Stack>
+      <Title order={2}>{t('nav.cachedZones')}</Title>
+      <ZoneBrowser apiBase="cache" />
+    </Stack>
   );
 }
 
 export const Route = createFileRoute('/_authenticated/cache')({
   component: CachePage,
+  validateSearch: ZoneBrowserSearchSchema,
 });

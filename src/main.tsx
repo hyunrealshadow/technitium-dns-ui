@@ -12,13 +12,15 @@ import '@mantine/core/styles.css';
 import '@mantine/charts/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
+import './index.css';
 
+import { theme } from './theme';
 import { colorModeAtom } from './store/theme';
 import { sessionAtom } from './store/auth';
+import { jotaiStore } from './store/jotai';
 import { apiClient } from './api/client';
 import { router } from './router.ts';
 
-// 创建 query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -28,14 +30,12 @@ const queryClient = new QueryClient({
   },
 });
 
-// 注册路由类型
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
 }
 
-// 将自定义颜色模式转换为 Mantine 的颜色方案
 function getMantineColorScheme(colorMode: string): 'light' | 'dark' {
   if (colorMode === 'auto') {
     if (
@@ -49,7 +49,7 @@ function getMantineColorScheme(colorMode: string): 'light' | 'dark' {
   return colorMode as 'light' | 'dark';
 }
 
-function App() {
+export function App() {
   const [colorMode] = useAtom(colorModeAtom);
   const [session] = useAtom(sessionAtom);
   const lastTokenRef = React.useRef<string | null>(null);
@@ -71,7 +71,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider>
+      <MantineProvider theme={theme}>
         <Notifications position="top-right" />
         <RouterProvider router={router} />
       </MantineProvider>
@@ -81,7 +81,7 @@ function App() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <JotaiProvider>
+    <JotaiProvider store={jotaiStore}>
       <App />
     </JotaiProvider>
   </StrictMode>

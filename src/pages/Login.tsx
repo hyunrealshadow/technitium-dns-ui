@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
-  Container,
   Paper,
   PasswordInput,
   Stack,
+  Text,
   TextInput,
   Title,
 } from '@mantine/core';
@@ -14,7 +15,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 import { isAuthenticatedAtom, sessionAtom } from '../store/auth';
 import { apiClient } from '../api/client';
-import { useNavigate } from '@tanstack/react-router';
+import { getFirstPermittedRoute } from '../utils/permissions';
 import { IconAlertCircle } from '@tabler/icons-react';
 
 export function LoginPage() {
@@ -24,14 +25,16 @@ export function LoginPage() {
   const [show2FA, setShow2FA] = useState(false);
   const setSession = useSetAtom(sessionAtom);
   const isAuthenticated = useAtomValue(isAuthenticatedAtom);
-  const navigate = useNavigate();
+  const session = useAtomValue(sessionAtom);
 
-  // 如果已登录，自动跳转到 dashboard
+  // 已登录时（含刚登录成功）跳转到第一个有查看权限的页面；
+  // 用整页跳转确保 apiClient 能从 localStorage 恢复 token，避免组件内请求先于 token 初始化
   useEffect(() => {
     if (isAuthenticated) {
-      navigate({ to: '/dashboard' });
+      const target = getFirstPermittedRoute(session?.permissions) ?? '/dashboard';
+      window.location.assign(target);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, session]);
 
   const form = useForm({
     initialValues: {
@@ -54,20 +57,24 @@ export function LoginPage() {
 
       if (response.status === 'ok') {
         const token = response.token;
+        const permissions = response.info?.permissions;
         apiClient.setToken(token);
         setSession({
           username: values.username,
           token,
           displayName: response.displayName,
+          permissions,
         });
-        navigate({ to: '/dashboard' });
+        // 跳转到第一个有查看权限的页面；无权限数据（旧会话兼容）时回退到仪表板
+        const target = getFirstPermittedRoute(permissions) ?? '/dashboard';
+        window.location.assign(target);
       } else if (response.status === '2fa-required') {
         setShow2FA(true);
         setError(t('login.twoFactorRequired'));
       } else {
         setError(response.errorMessage || t('login.loginFailed'));
       }
-    } catch (err) {
+    } catch {
       setError(t('login.loginError'));
     } finally {
       setLoading(false);
@@ -75,49 +82,67 @@ export function LoginPage() {
   };
 
   return (
-    <Container size={420} my={100}>
-      <Title ta="center" mb="md">
-        {t('login.title')}
-      </Title>
-
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack>
-            {error && (
-              <Alert icon={<IconAlertCircle size={16} />} color="red">
-                {error}
-              </Alert>
-            )}
-
-            <TextInput
-              label={t('login.usernameLabel')}
-              placeholder={t('login.usernamePlaceholder')}
-              required
-              {...form.getInputProps('username')}
+    <Box className="login-shell">
+      <Stack w={400} gap="xl" style={{ position: 'relative', zIndex: 1 }}>
+        <Stack align="center" gap={4}>
+          <Box className="brand-mark" w={56} h={56}>
+            <img
+              src="/logo.png"
+              alt="logo"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
+          </Box>
+          <Title order={2} mt="sm" style={{ letterSpacing: '-0.01em' }}>
+            {t('layout.title')}
+          </Title>
+          <Text c="dimmed" size="sm">
+            {t('login.subtitle')}
+          </Text>
+        </Stack>
 
-            <PasswordInput
-              label={t('login.passwordLabel')}
-              placeholder={t('login.passwordPlaceholder')}
-              required
-              {...form.getInputProps('password')}
-            />
+        <Paper withBorder shadow="xl" p={30} radius="lg">
+          <form onSubmit={form.onSubmit(handleSubmit)}>
+            <Stack>
+              {error && (
+                <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
+                  {error}
+                </Alert>
+              )}
 
-            {show2FA && (
               <TextInput
-                label={t('login.totpLabel')}
-                placeholder={t('login.totpPlaceholder')}
-                maxLength={6}
-                {...form.getInputProps('totp')}
+                label={t('login.usernameLabel')}
+                placeholder={t('login.usernamePlaceholder')}
+                required
+                {...form.getInputProps('username')}
               />
-            )}
 
-            <Button type="submit" fullWidth loading={loading}>
-              {t('login.loginButton')}
-            </Button>
-          </Stack>
-        </form>
-      </Paper>
-    </Container>
+              <PasswordInput
+                label={t('login.passwordLabel')}
+                placeholder={t('login.passwordPlaceholder')}
+                required
+                {...form.getInputProps('password')}
+              />
+
+              {show2FA && (
+                <TextInput
+                  label={t('login.totpLabel')}
+                  placeholder={t('login.totpPlaceholder')}
+                  maxLength={6}
+                  {...form.getInputProps('totp')}
+                />
+              )}
+
+              <Button type="submit" fullWidth loading={loading} size="md" mt="xs">
+                {t('login.loginButton')}
+              </Button>
+            </Stack>
+          </form>
+        </Paper>
+
+        <Text size="xs" c="dimmed" ta="center">
+          {t('common.copyrightFull', { year: new Date().getFullYear() })}
+        </Text>
+      </Stack>
+    </Box>
   );
 }

@@ -27,4 +27,10 @@ i18n
     },
   });
 
+// 语言切换时同步页面标题与 lang 属性（HTML 静态标题仅作兜底）
+i18n.on('languageChanged', lng => {
+  document.documentElement.lang = lng;
+  document.title = i18n.t('layout.title');
+});
+
 export default i18n;

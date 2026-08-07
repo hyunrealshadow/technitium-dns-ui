@@ -212,7 +212,7 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
         onSuccess(domain);
         onClose();
       } else {
-        throw new Error(response.errorMessage || 'Failed to create zone');
+        throw new Error(response.errorMessage || t('zones.createFailed'));
       }
     } catch {
       error(t('common.error'), t('zones.createFailed'));
@@ -275,11 +275,7 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
 
         {(zoneType === 'Secondary' || zoneType === 'Stub') && (
           <Textarea
-            label={
-              zoneType === 'SecondaryForwarder' || zoneType === 'SecondaryCatalog'
-                ? t('zones.primaryNsRequired')
-                : t('zones.primaryNsOptional')
-            }
+            label={t('zones.primaryNsOptional')}
             placeholder={t('zones.primaryNsPlaceholder')}
             value={primaryNsAddresses}
             onChange={e => setPrimaryNsAddresses(e.target.value)}

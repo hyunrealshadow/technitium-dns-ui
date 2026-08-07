@@ -11,6 +11,7 @@ import {
   Select,
   Stack,
   Table,
+  Tabs,
   Text,
   TextInput,
   Textarea,
@@ -40,11 +41,11 @@ export function ImportZoneModal({
 
   const handleImport = async () => {
     if (importType === 'file' && !file) {
-      error(t('common.error'), 'Please select a zone file');
+      error(t('common.error'), t('zones.importFileRequired'));
       return;
     }
     if (importType === 'text' && !text.trim()) {
-      error(t('common.error'), 'Please enter zone records');
+      error(t('common.error'), t('zones.importTextRequired'));
       return;
     }
 
@@ -80,32 +81,33 @@ export function ImportZoneModal({
   };
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={`${t('common.import')} Zone: ${zone}`}
-      size="md"
-    >
+    <Modal opened={opened} onClose={onClose} title={t('zones.importZoneTitle', { zone })} size="md">
       <Stack>
-        <Radio.Group value={importType} onChange={v => setImportType(v as 'file' | 'text')}>
-          <Group>
-            <Radio value="file" label="File" />
-            <Radio value="text" label="Text" />
-          </Group>
-        </Radio.Group>
+        <Group>
+          <Radio
+            checked={importType === 'file'}
+            onChange={() => setImportType('file')}
+            label={t('zones.importTypeFile')}
+          />
+          <Radio
+            checked={importType === 'text'}
+            onChange={() => setImportType('text')}
+            label={t('zones.importTypeText')}
+          />
+        </Group>
 
         {importType === 'file' ? (
           <FileInput
-            label="Zone File"
-            placeholder="Select .zone file"
+            label={t('zones.zoneFileLabel')}
+            placeholder={t('zones.importFilePlaceholder')}
             value={file}
             onChange={setFile}
             accept=".zone,.txt"
           />
         ) : (
           <Textarea
-            label="Zone Records"
-            placeholder="Paste zone file content..."
+            label={t('zones.zoneRecordsLabel')}
+            placeholder={t('zones.zoneRecordsPlaceholder')}
             value={text}
             onChange={e => setText(e.target.value)}
             minRows={8}
@@ -114,12 +116,12 @@ export function ImportZoneModal({
         )}
 
         <Checkbox
-          label="Overwrite existing records"
+          label={t('zones.overwriteRecords')}
           checked={overwrite}
           onChange={e => setOverwrite(e.currentTarget.checked)}
         />
         <Checkbox
-          label="Overwrite SOA serial"
+          label={t('zones.overwriteSoaSerial')}
           checked={overwriteSoaSerial}
           onChange={e => setOverwriteSoaSerial(e.currentTarget.checked)}
           disabled={!overwrite}
@@ -155,7 +157,7 @@ export function CloneZoneModal({
 
   const handleClone = async () => {
     if (!newZone.trim()) {
-      error(t('common.error'), 'Please enter a new zone name');
+      error(t('common.error'), t('zones.newZoneNameRequired'));
       return;
     }
     setLoading(true);
@@ -165,7 +167,7 @@ export function CloneZoneModal({
       onClose();
       onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to clone zone');
+      error(t('common.error'), t('zones.cloneFailed'));
     } finally {
       setLoading(false);
     }
@@ -177,7 +179,7 @@ export function CloneZoneModal({
         <TextInput label={t('zones.sourceZone')} value={zone} disabled />
         <TextInput
           label={t('zones.newZoneName')}
-          placeholder="newzone.com"
+          placeholder={t('zones.newZoneNamePlaceholder')}
           value={newZone}
           onChange={e => setNewZone(e.target.value)}
           required
@@ -247,7 +249,7 @@ export function ConvertZoneModal({
   if (availableTypes.length === 0) {
     return (
       <Modal opened={opened} onClose={onClose} title={t('zones.convertZone')} size="sm">
-        <Text>This zone type cannot be converted.</Text>
+        <Text>{t('zones.convertNotSupported')}</Text>
         <Group justify="flex-end" mt="md">
           <Button onClick={onClose}>{t('common.close')}</Button>
         </Group>
@@ -259,17 +261,14 @@ export function ConvertZoneModal({
     <Modal opened={opened} onClose={onClose} title={t('zones.convertZone')} size="sm">
       <Stack>
         <Text fw={500}>{t('zones.convertToType')}</Text>
-        <Radio.Group value={convertType} onChange={setConvertType}>
-          <Stack>
-            {availableTypes.map(t => (
-              <Radio
-                key={t}
-                value={t}
-                label={t === 'Forwarder' ? 'Forwarder' : t === 'Catalog' ? 'Catalog' : t}
-              />
-            ))}
-          </Stack>
-        </Radio.Group>
+        {availableTypes.map(type => (
+          <Radio
+            key={type}
+            checked={convertType === type}
+            onChange={() => setConvertType(type)}
+            label={t(`zones.types.${type}`)}
+          />
+        ))}
         <Group justify="flex-end">
           <Button variant="subtle" onClick={onClose}>
             {t('common.cancel')}
@@ -297,19 +296,23 @@ export function ZoneOptionsModal({
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
-  // General
-  const [disabled, setDisabled] = useState(false);
+  const [zoneType, setZoneType] = useState('');
   const [catalog, setCatalog] = useState('');
+  const [catalogOptions, setCatalogOptions] = useState<{ value: string; label: string }[]>([]);
   const [overrideQueryAccess, setOverrideQueryAccess] = useState(false);
   const [overrideZoneTransfer, setOverrideZoneTransfer] = useState(false);
   const [overrideNotify, setOverrideNotify] = useState(false);
+  const [overridePrimaryNameServers, setOverridePrimaryNameServers] = useState(false);
+  const [isSecondaryCatalogMember, setIsSecondaryCatalogMember] = useState(false);
+
   const [primaryNsAddresses, setPrimaryNsAddresses] = useState('');
   const [primaryZoneTransferProtocol, setPrimaryZoneTransferProtocol] = useState('Tcp');
   const [primaryZoneTransferTsigKeyName, setPrimaryZoneTransferTsigKeyName] = useState('');
+  const [tsigKeyOptions, setTsigKeyOptions] = useState<{ value: string; label: string }[]>([]);
   const [validateZone, setValidateZone] = useState(false);
 
   // Query Access
-  const [queryAccess, setQueryAccess] = useState('Allow');
+  const [queryAccess, setQueryAccess] = useState('Deny');
   const [queryAccessAcl, setQueryAccessAcl] = useState('');
 
   // Zone Transfer
@@ -318,61 +321,72 @@ export function ZoneOptionsModal({
   const [zoneTransferTsigKeys, setZoneTransferTsigKeys] = useState('');
 
   // Notify
-  const [notify, setNotify] = useState('Never');
+  const [notify, setNotify] = useState('None');
   const [notifyNameServers, setNotifyNameServers] = useState('');
+  const [notifySecondaryCatalogNs, setNotifySecondaryCatalogNs] = useState('');
+  const [notifyFailedFor, setNotifyFailedFor] = useState<string[]>([]);
 
   // Dynamic Updates
   const [update, setUpdate] = useState('Deny');
   const [updateAcl, setUpdateAcl] = useState('');
+  const [updateSecurityPolicies, setUpdateSecurityPolicies] = useState<
+    { tsigKeyName: string; domain: string; allowedTypes: string }[]
+  >([]);
 
   const [tab, setTab] = useState('general');
 
   const QUERY_ACCESS_OPTIONS = [
-    { value: 'Allow', label: 'Allow' },
-    { value: 'AllowOnlyPrivateNetworks', label: 'Allow Only Private Networks' },
-    { value: 'AllowOnlyZoneNameServers', label: 'Allow Only Zone Name Servers' },
-    { value: 'UseSpecifiedNetworkACL', label: 'Use Specified Network ACL' },
+    { value: 'Deny', label: t('zones.policyOptions.deny') },
+    { value: 'Allow', label: t('zones.policyOptions.allowDefault') },
+    { value: 'AllowOnlyPrivateNetworks', label: t('zones.policyOptions.allowOnlyPrivateNetworks') },
+    { value: 'AllowOnlyZoneNameServers', label: t('zones.policyOptions.allowOnlyZoneNameServers') },
+    { value: 'UseSpecifiedNetworkACL', label: t('zones.policyOptions.useSpecifiedNetworkACL') },
     {
       value: 'AllowZoneNameServersAndUseSpecifiedNetworkACL',
-      label: 'Allow Zone NS And Specified ACL',
+      label: t('zones.policyOptions.allowZoneNameServersAndUseSpecifiedNetworkACL'),
     },
-    { value: 'Deny', label: 'Deny' },
   ];
 
   const ZONE_TRANSFER_OPTIONS = [
-    { value: 'Deny', label: 'Deny' },
-    { value: 'AllowOnlyZoneNameServers', label: 'Allow Only Zone Name Servers' },
-    { value: 'UseSpecifiedNetworkACL', label: 'Use Specified Network ACL' },
+    { value: 'Deny', label: t('zones.policyOptions.deny') },
+    { value: 'Allow', label: t('zones.policyOptions.allow') },
+    { value: 'AllowOnlyZoneNameServers', label: t('zones.policyOptions.allowOnlyZoneNameServers') },
+    { value: 'UseSpecifiedNetworkACL', label: t('zones.policyOptions.useSpecifiedNetworkACL') },
     {
       value: 'AllowZoneNameServersAndUseSpecifiedNetworkACL',
-      label: 'Allow Zone NS And Specified ACL',
+      label: t('zones.policyOptions.allowZoneNameServersAndUseSpecifiedNetworkACL'),
     },
   ];
 
   const NOTIFY_OPTIONS = [
-    { value: 'Never', label: 'Never' },
-    { value: 'Always', label: 'Always' },
-    { value: 'SpecifiedNameServers', label: 'Specified Name Servers' },
-    { value: 'BothZoneAndSpecifiedNameServers', label: 'Zone NS & Specified' },
+    { value: 'None', label: t('zones.policyOptions.none') },
+    { value: 'ZoneNameServers', label: t('zones.policyOptions.zoneNameServers') },
+    { value: 'SpecifiedNameServers', label: t('zones.policyOptions.specifiedNameServers') },
+    {
+      value: 'BothZoneAndSpecifiedNameServers',
+      label: t('zones.policyOptions.bothZoneAndSpecifiedNameServers'),
+    },
     {
       value: 'SeparateNameServersForCatalogAndMemberZones',
-      label: 'Separate NS For Catalog & Member',
+      label: t('zones.policyOptions.separateNameServersForCatalogAndMemberZones'),
     },
   ];
 
   const UPDATE_OPTIONS = [
-    { value: 'Deny', label: 'Deny' },
-    { value: 'AllowOnlyZoneNameServers', label: 'Allow Only Zone Name Servers' },
-    { value: 'UseSpecifiedNetworkACL', label: 'Use Specified Network ACL' },
+    { value: 'Deny', label: t('zones.policyOptions.denyDefault') },
+    { value: 'Allow', label: t('zones.policyOptions.allow') },
+    { value: 'AllowOnlyZoneNameServers', label: t('zones.policyOptions.allowOnlyZoneNameServers') },
+    { value: 'UseSpecifiedNetworkACL', label: t('zones.policyOptions.useSpecifiedNetworkACL') },
     {
       value: 'AllowZoneNameServersAndUseSpecifiedNetworkACL',
-      label: 'Allow Zone NS And Specified ACL',
+      label: t('zones.policyOptions.allowZoneNameServersAndUseSpecifiedNetworkACL'),
     },
   ];
 
   useEffect(() => {
     if (!opened) return;
     const load = async () => {
+      setTab('general');
       try {
         const token = apiClient.getToken();
         const response = await fetch(
@@ -381,60 +395,139 @@ export function ZoneOptionsModal({
         const data = await response.json();
         if (data.status === 'ok' && data.response) {
           const r = data.response;
-          setDisabled(r.disabled || false);
+          setZoneType(r.type || '');
           setCatalog(r.catalog || '');
+          setCatalogOptions(
+            (r.availableCatalogZoneNames || []).map((n: string) => ({ value: n, label: n }))
+          );
           setOverrideQueryAccess(r.overrideCatalogQueryAccess || false);
           setOverrideZoneTransfer(r.overrideCatalogZoneTransfer || false);
           setOverrideNotify(r.overrideCatalogNotify || false);
+          setOverridePrimaryNameServers(r.overrideCatalogPrimaryNameServers || false);
+          setIsSecondaryCatalogMember(r.isSecondaryCatalogMember || false);
           setPrimaryNsAddresses((r.primaryNameServerAddresses || []).join('\n'));
           setPrimaryZoneTransferProtocol(r.primaryZoneTransferProtocol || 'Tcp');
           setPrimaryZoneTransferTsigKeyName(r.primaryZoneTransferTsigKeyName || '');
+          setTsigKeyOptions(
+            (r.availableTsigKeyNames || []).map((n: string) => ({ value: n, label: n }))
+          );
           setValidateZone(r.validateZone || false);
-          setQueryAccess(r.queryAccess || 'Allow');
+          setQueryAccess(r.queryAccess || 'Deny');
           setQueryAccessAcl((r.queryAccessNetworkACL || []).join('\n'));
           setZoneTransfer(r.zoneTransfer || 'Deny');
           setZoneTransferAcl((r.zoneTransferNetworkACL || []).join('\n'));
           setZoneTransferTsigKeys((r.zoneTransferTsigKeyNames || []).join('\n'));
-          setNotify(r.notify || 'Never');
+          setNotify(r.notify || 'None');
           setNotifyNameServers((r.notifyNameServers || []).join('\n'));
+          setNotifySecondaryCatalogNs((r.notifySecondaryCatalogsNameServers || []).join('\n'));
+          setNotifyFailedFor(r.notifyFailedFor || []);
           setUpdate(r.update || 'Deny');
           setUpdateAcl((r.updateNetworkACL || []).join('\n'));
+          setUpdateSecurityPolicies(r.updateSecurityPolicies || []);
         }
       } catch {
-        error(t('common.error'), 'Failed to load zone options');
+        error(t('common.error'), t('zones.optionsLoadFailed'));
       }
     };
     load();
   }, [opened, zone, t]);
 
+  const isCatalogMember = isSecondaryCatalogMember && catalog !== '';
+
+  const showCatalogSection =
+    ['Primary', 'Secondary', 'Stub', 'Forwarder', 'SecondaryForwarder'].includes(zoneType) &&
+    (catalogOptions.length > 0 || catalog !== '');
+
+  const showPrimaryServerSection = [
+    'Secondary',
+    'SecondaryForwarder',
+    'SecondaryCatalog',
+    'Stub',
+  ].includes(zoneType);
+
+  const canShowQueryAccessTab = [
+    'Primary',
+    'Secondary',
+    'Stub',
+    'Forwarder',
+    'SecondaryForwarder',
+    'SecondaryCatalog',
+    'Catalog',
+  ].includes(zoneType);
+  const canShowZoneTransferTab = [
+    'Primary',
+    'Secondary',
+    'Forwarder',
+    'Catalog',
+    'SecondaryCatalog',
+  ].includes(zoneType);
+  const canShowNotifyTab = ['Primary', 'Secondary', 'Forwarder', 'Catalog'].includes(zoneType);
+  const canShowUpdateTab = ['Primary', 'Secondary', 'SecondaryForwarder', 'Forwarder'].includes(
+    zoneType
+  );
+
+  const showQueryAccessZoneNsOptions = zoneType === 'Primary' || zoneType === 'Secondary';
+  const showZoneTransferZoneNsOptions = zoneType === 'Primary' || zoneType === 'Secondary';
+  const showNotifyZoneNsOptions = zoneType !== 'Forwarder';
+  const showUpdateZoneNsOptions = zoneType === 'Primary';
+  const showSeparateCatalogNotify = zoneType === 'Catalog';
+
+  const queryAccessDisabled = zoneType === 'SecondaryCatalog';
+  const zoneTransferDisabled = zoneType === 'SecondaryCatalog';
+
+  const handleAddSecurityPolicyRow = () => {
+    setUpdateSecurityPolicies(prev => [
+      ...prev,
+      { tsigKeyName: '', domain: zone, allowedTypes: 'A,AAAA' },
+    ]);
+  };
+
+  const handleRemoveSecurityPolicyRow = (index: number) => {
+    setUpdateSecurityPolicies(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const params: Record<string, unknown> = { zone };
-      if (disabled) params.disabled = true;
 
-      if (catalog) params.catalog = catalog;
-      else params.catalog = '';
-
+      params.catalog = catalog || '';
       params.overrideCatalogQueryAccess = overrideQueryAccess;
       params.overrideCatalogZoneTransfer = overrideZoneTransfer;
       params.overrideCatalogNotify = overrideNotify;
+
+      if (showPrimaryServerSection) {
+        params.primaryNameServerAddresses =
+          primaryNsAddresses.trim().replace(/\n/g, ',') || 'false';
+        params.primaryZoneTransferProtocol = primaryZoneTransferProtocol;
+        params.primaryZoneTransferTsigKeyName = primaryZoneTransferTsigKeyName || '';
+        if (zoneType === 'Secondary') params.validateZone = validateZone;
+      }
+
       params.queryAccess = queryAccess;
-      params.queryAccessNetworkACL = queryAccessAcl || 'false';
+      params.queryAccessNetworkACL = queryAccessAcl.trim().replace(/\n/g, ',') || 'false';
       params.zoneTransfer = zoneTransfer;
-      params.zoneTransferNetworkACL = zoneTransferAcl || 'false';
-      params.zoneTransferTsigKeyNames = zoneTransferTsigKeys || 'false';
+      params.zoneTransferNetworkACL = zoneTransferAcl.trim().replace(/\n/g, ',') || 'false';
+      params.zoneTransferTsigKeyNames = zoneTransferTsigKeys.trim().replace(/\n/g, ',') || 'false';
       params.notify = notify;
-      params.notifyNameServers = notifyNameServers || 'false';
+      params.notifyNameServers = notifyNameServers.trim().replace(/\n/g, ',') || 'false';
+      params.notifySecondaryCatalogsNameServers =
+        notifySecondaryCatalogNs.trim().replace(/\n/g, ',') || 'false';
       params.update = update;
-      params.updateNetworkACL = updateAcl || 'false';
+      params.updateNetworkACL = updateAcl.trim().replace(/\n/g, ',') || 'false';
+
+      if (updateSecurityPolicies.length > 0) {
+        params.updateSecurityPolicies = updateSecurityPolicies
+          .map(p => `${p.tsigKeyName}|${p.domain}|${p.allowedTypes}`)
+          .join('|');
+      }
 
       await apiClient.post('/zones/options/set', params);
-      success(t('common.success'), 'Zone options saved');
+      success(t('common.success'), t('zones.optionsSaved'));
       onClose();
       onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to save zone options');
+      error(t('common.error'), t('zones.optionsSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -442,89 +535,153 @@ export function ZoneOptionsModal({
 
   return (
     <Modal opened={opened} onClose={onClose} title={`${t('zones.zoneOptions')}: ${zone}`} size="lg">
-      <Stack>
-        <Select
-          data={[
-            { value: 'general', label: t('zones.general') },
-            { value: 'queryAccess', label: t('zones.queryAccess') },
-            { value: 'zoneTransfer', label: t('zones.zoneTransfer') },
-            { value: 'notify', label: t('zones.notify') },
-            { value: 'dynamicUpdates', label: t('zones.dynamicUpdates') },
-          ]}
-          value={tab}
-          onChange={v => setTab(v || 'general')}
-        />
+      <Tabs value={tab} onChange={v => setTab(v || 'general')}>
+        <Tabs.List>
+          {(showCatalogSection || showPrimaryServerSection) && (
+            <Tabs.Tab value="general">{t('zones.general')}</Tabs.Tab>
+          )}
+          {canShowQueryAccessTab && (
+            <Tabs.Tab value="queryAccess">{t('zones.queryAccess')}</Tabs.Tab>
+          )}
+          {canShowZoneTransferTab && (
+            <Tabs.Tab value="zoneTransfer">{t('zones.zoneTransfer')}</Tabs.Tab>
+          )}
+          {canShowNotifyTab && <Tabs.Tab value="notify">{t('zones.notify')}</Tabs.Tab>}
+          {canShowUpdateTab && (
+            <Tabs.Tab value="dynamicUpdates">{t('zones.dynamicUpdates')}</Tabs.Tab>
+          )}
+        </Tabs.List>
 
-        {tab === 'general' && (
+        <Tabs.Panel value="general" pt="md">
           <Stack>
-            <Checkbox
-              label="Disabled"
-              checked={disabled}
-              onChange={e => setDisabled(e.currentTarget.checked)}
-            />
-            <TextInput
-              label="Catalog Zone"
-              placeholder="Optional"
-              value={catalog}
-              onChange={e => setCatalog(e.target.value)}
-            />
-            <Checkbox
-              label="Override Catalog Query Access"
-              checked={overrideQueryAccess}
-              onChange={e => setOverrideQueryAccess(e.currentTarget.checked)}
-            />
-            <Checkbox
-              label="Override Catalog Zone Transfer"
-              checked={overrideZoneTransfer}
-              onChange={e => setOverrideZoneTransfer(e.currentTarget.checked)}
-            />
-            <Checkbox
-              label="Override Catalog Notify"
-              checked={overrideNotify}
-              onChange={e => setOverrideNotify(e.currentTarget.checked)}
-            />
-            <Textarea
-              label="Primary Name Server Addresses"
-              placeholder="One per line"
-              value={primaryNsAddresses}
-              onChange={e => setPrimaryNsAddresses(e.target.value)}
-              minRows={3}
-            />
-            <Select
-              label="Zone Transfer Protocol"
-              data={['Tcp', 'Tls', 'Quic'].map(v => ({ value: v, label: v }))}
-              value={primaryZoneTransferProtocol}
-              onChange={v => setPrimaryZoneTransferProtocol(v || 'Tcp')}
-            />
-            <TextInput
-              label="TSIG Key Name"
-              placeholder="Optional"
-              value={primaryZoneTransferTsigKeyName}
-              onChange={e => setPrimaryZoneTransferTsigKeyName(e.target.value)}
-            />
-            <Checkbox
-              label="Validate Zone"
-              checked={validateZone}
-              onChange={e => setValidateZone(e.currentTarget.checked)}
-            />
+            {showCatalogSection && (
+              <>
+                <Select
+                  label={t('zones.catalogZone')}
+                  placeholder={t('common.optional')}
+                  data={catalogOptions}
+                  value={catalog}
+                  onChange={v => {
+                    setCatalog(v || '');
+                    setOverrideQueryAccess(false);
+                    setOverrideZoneTransfer(false);
+                    setOverrideNotify(false);
+                  }}
+                  clearable
+                  searchable
+                  disabled={isCatalogMember}
+                />
+                {catalog !== '' && (
+                  <Checkbox
+                    label={t('zones.overrideQueryAccess')}
+                    checked={overrideQueryAccess}
+                    onChange={e => setOverrideQueryAccess(e.currentTarget.checked)}
+                    disabled={isCatalogMember}
+                  />
+                )}
+                {catalog !== '' &&
+                  (zoneType === 'Primary' ||
+                    zoneType === 'Forwarder' ||
+                    zoneType === 'Secondary') && (
+                    <Checkbox
+                      label={t('zones.overrideZoneTransfer')}
+                      checked={overrideZoneTransfer}
+                      onChange={e => setOverrideZoneTransfer(e.currentTarget.checked)}
+                      disabled={isCatalogMember}
+                    />
+                  )}
+                {catalog !== '' && (zoneType === 'Primary' || zoneType === 'Forwarder') && (
+                  <Checkbox
+                    label={t('zones.overrideNotify')}
+                    checked={overrideNotify}
+                    onChange={e => setOverrideNotify(e.currentTarget.checked)}
+                    disabled={isCatalogMember}
+                  />
+                )}
+              </>
+            )}
+
+            {showPrimaryServerSection && (
+              <>
+                <Textarea
+                  label={
+                    zoneType === 'SecondaryForwarder' || zoneType === 'SecondaryCatalog'
+                      ? t('zones.primaryNsRequired')
+                      : t('zones.primaryNsOptional')
+                  }
+                  placeholder={t('common.onePerLine')}
+                  value={primaryNsAddresses}
+                  onChange={e => setPrimaryNsAddresses(e.target.value)}
+                  minRows={3}
+                  disabled={isCatalogMember && !overridePrimaryNameServers}
+                />
+                {(zoneType === 'Secondary' ||
+                  zoneType === 'SecondaryForwarder' ||
+                  zoneType === 'SecondaryCatalog') && (
+                  <Select
+                    label={t('zones.zoneTransferProtocol')}
+                    data={[
+                      { value: 'Tcp', label: t('zones.xfrOverTcp') },
+                      { value: 'Tls', label: t('zones.xfrOverTls') },
+                      { value: 'Quic', label: t('zones.xfrOverQuic') },
+                    ]}
+                    value={primaryZoneTransferProtocol}
+                    onChange={v => setPrimaryZoneTransferProtocol(v || 'Tcp')}
+                    disabled={isCatalogMember}
+                  />
+                )}
+                {(zoneType === 'Secondary' ||
+                  zoneType === 'SecondaryForwarder' ||
+                  zoneType === 'SecondaryCatalog') && (
+                  <Select
+                    label={t('zones.tsigKeyOptional')}
+                    placeholder={t('common.optional')}
+                    data={tsigKeyOptions}
+                    value={primaryZoneTransferTsigKeyName}
+                    onChange={v => setPrimaryZoneTransferTsigKeyName(v || '')}
+                    clearable
+                    searchable
+                    disabled={isCatalogMember}
+                  />
+                )}
+                {zoneType === 'Secondary' && (
+                  <Checkbox
+                    label={t('zones.useZonemd')}
+                    checked={validateZone}
+                    onChange={e => setValidateZone(e.currentTarget.checked)}
+                    disabled={isCatalogMember}
+                  />
+                )}
+              </>
+            )}
           </Stack>
-        )}
+        </Tabs.Panel>
 
-        {tab === 'queryAccess' && (
+        <Tabs.Panel value="queryAccess" pt="md">
           <Stack>
             <Select
-              label="Query Access Policy"
-              data={QUERY_ACCESS_OPTIONS}
+              label={t('zones.queryAccessPolicy')}
+              data={
+                showQueryAccessZoneNsOptions
+                  ? QUERY_ACCESS_OPTIONS
+                  : QUERY_ACCESS_OPTIONS.filter(
+                      o =>
+                        o.value !== 'AllowOnlyZoneNameServers' &&
+                        o.value !== 'AllowZoneNameServersAndUseSpecifiedNetworkACL'
+                    )
+              }
               value={queryAccess}
-              onChange={v => setQueryAccess(v || 'Allow')}
+              onChange={v => setQueryAccess(v || 'Deny')}
+              disabled={queryAccessDisabled}
             />
             <Textarea
-              label="Network ACL"
-              placeholder="One per line (e.g. 10.0.0.0/8)"
+              label={t('zones.networkAcl')}
+              placeholder={t('zones.networkAclPlaceholder')}
               value={queryAccessAcl}
               onChange={e => setQueryAccessAcl(e.target.value)}
-              minRows={3}
+              minRows={5}
               disabled={
+                queryAccessDisabled ||
                 ![
                   'UseSpecifiedNetworkACL',
                   'AllowZoneNameServersAndUseSpecifiedNetworkACL',
@@ -532,23 +689,33 @@ export function ZoneOptionsModal({
               }
             />
           </Stack>
-        )}
+        </Tabs.Panel>
 
-        {tab === 'zoneTransfer' && (
+        <Tabs.Panel value="zoneTransfer" pt="md">
           <Stack>
             <Select
-              label="Zone Transfer Policy"
-              data={ZONE_TRANSFER_OPTIONS}
+              label={t('zones.zoneTransferPolicy')}
+              data={
+                showZoneTransferZoneNsOptions
+                  ? ZONE_TRANSFER_OPTIONS
+                  : ZONE_TRANSFER_OPTIONS.filter(
+                      o =>
+                        o.value !== 'AllowOnlyZoneNameServers' &&
+                        o.value !== 'AllowZoneNameServersAndUseSpecifiedNetworkACL'
+                    )
+              }
               value={zoneTransfer}
               onChange={v => setZoneTransfer(v || 'Deny')}
+              disabled={zoneTransferDisabled}
             />
             <Textarea
-              label="Network ACL"
-              placeholder="One per line"
+              label={t('zones.networkAcl')}
+              placeholder={t('common.onePerLine')}
               value={zoneTransferAcl}
               onChange={e => setZoneTransferAcl(e.target.value)}
-              minRows={3}
+              minRows={5}
               disabled={
+                zoneTransferDisabled ||
                 ![
                   'UseSpecifiedNetworkACL',
                   'AllowZoneNameServersAndUseSpecifiedNetworkACL',
@@ -556,48 +723,111 @@ export function ZoneOptionsModal({
               }
             />
             <Textarea
-              label="TSIG Key Names"
-              placeholder="One per line"
+              label={t('zones.zoneTransferTsigKeyNames')}
+              placeholder={t('common.onePerLine')}
               value={zoneTransferTsigKeys}
               onChange={e => setZoneTransferTsigKeys(e.target.value)}
               minRows={3}
+              disabled={zoneTransferDisabled}
             />
+            {tsigKeyOptions.length > 0 && (
+              <Select
+                label={t('common.quickAdd')}
+                placeholder={t('zones.selectTsigKeyName')}
+                data={tsigKeyOptions}
+                value=""
+                onChange={v => {
+                  if (v) {
+                    const list = zoneTransferTsigKeys.split('\n').filter(x => x.trim() !== '');
+                    if (!list.includes(v)) {
+                      list.push(v);
+                      setZoneTransferTsigKeys(list.join('\n'));
+                    }
+                  }
+                }}
+                clearable
+                searchable
+                disabled={zoneTransferDisabled}
+              />
+            )}
           </Stack>
-        )}
+        </Tabs.Panel>
 
-        {tab === 'notify' && (
+        <Tabs.Panel value="notify" pt="md">
           <Stack>
             <Select
-              label="Notify Policy"
-              data={NOTIFY_OPTIONS}
+              label={t('zones.notifyPolicy')}
+              data={
+                showSeparateCatalogNotify
+                  ? NOTIFY_OPTIONS
+                  : showNotifyZoneNsOptions
+                    ? NOTIFY_OPTIONS.filter(
+                        o => o.value !== 'SeparateNameServersForCatalogAndMemberZones'
+                      )
+                    : NOTIFY_OPTIONS.filter(
+                        o =>
+                          o.value !== 'ZoneNameServers' &&
+                          o.value !== 'BothZoneAndSpecifiedNameServers' &&
+                          o.value !== 'SeparateNameServersForCatalogAndMemberZones'
+                      )
+              }
               value={notify}
-              onChange={v => setNotify(v || 'Never')}
+              onChange={v => setNotify(v || 'None')}
             />
             <Textarea
-              label="Notify Name Servers"
-              placeholder="One per line"
+              label={t('zones.specifiedNameServers')}
+              placeholder={t('zones.enterIpAddresses')}
               value={notifyNameServers}
               onChange={e => setNotifyNameServers(e.target.value)}
-              minRows={3}
-              disabled={notify === 'Never'}
+              minRows={5}
+              disabled={
+                ![
+                  'SpecifiedNameServers',
+                  'BothZoneAndSpecifiedNameServers',
+                  'SeparateNameServersForCatalogAndMemberZones',
+                ].includes(notify)
+              }
             />
+            {showSeparateCatalogNotify && (
+              <Textarea
+                label={t('zones.secondaryCatalogNs')}
+                placeholder={t('zones.enterIpAddresses')}
+                value={notifySecondaryCatalogNs}
+                onChange={e => setNotifySecondaryCatalogNs(e.target.value)}
+                minRows={5}
+                disabled={notify !== 'SeparateNameServersForCatalogAndMemberZones'}
+              />
+            )}
+            {notifyFailedFor.length > 0 && (
+              <Text size="sm" c="yellow">
+                {t('zones.notifyFailedNs', { list: notifyFailedFor.join(', ') })}
+              </Text>
+            )}
           </Stack>
-        )}
+        </Tabs.Panel>
 
-        {tab === 'dynamicUpdates' && (
+        <Tabs.Panel value="dynamicUpdates" pt="md">
           <Stack>
             <Select
-              label="Dynamic Update Policy"
-              data={UPDATE_OPTIONS}
+              label={t('zones.dynamicUpdatePolicy')}
+              data={
+                showUpdateZoneNsOptions
+                  ? UPDATE_OPTIONS
+                  : UPDATE_OPTIONS.filter(
+                      o =>
+                        o.value !== 'AllowOnlyZoneNameServers' &&
+                        o.value !== 'AllowZoneNameServersAndUseSpecifiedNetworkACL'
+                    )
+              }
               value={update}
               onChange={v => setUpdate(v || 'Deny')}
             />
             <Textarea
-              label="Network ACL"
-              placeholder="One per line"
+              label={t('zones.networkAcl')}
+              placeholder={t('common.onePerLine')}
               value={updateAcl}
               onChange={e => setUpdateAcl(e.target.value)}
-              minRows={3}
+              minRows={5}
               disabled={
                 ![
                   'UseSpecifiedNetworkACL',
@@ -605,18 +835,98 @@ export function ZoneOptionsModal({
                 ].includes(update)
               }
             />
-          </Stack>
-        )}
 
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleSave} loading={saving}>
-            {t('common.save')}
-          </Button>
-        </Group>
-      </Stack>
+            {(zoneType === 'Primary' || zoneType === 'Forwarder') && (
+              <>
+                <Text fw={600}>{t('zones.securityPolicy')}</Text>
+                <Group>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>{t('zones.tsigKeyName')}</Table.Th>
+                        <Table.Th>{t('zones.domainName')}</Table.Th>
+                        <Table.Th>{t('zones.allowedRecordTypes')}</Table.Th>
+                        <Table.Th style={{ width: 60 }}>
+                          <Button size="xs" variant="default" onClick={handleAddSecurityPolicyRow}>
+                            {t('common.add')}
+                          </Button>
+                        </Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {updateSecurityPolicies.map((policy, index) => (
+                        <Table.Tr key={index}>
+                          <Table.Td>
+                            <Select
+                              size="xs"
+                              data={tsigKeyOptions}
+                              value={policy.tsigKeyName}
+                              onChange={v =>
+                                setUpdateSecurityPolicies(prev =>
+                                  prev.map((p, i) =>
+                                    i === index ? { ...p, tsigKeyName: v || '' } : p
+                                  )
+                                )
+                              }
+                              clearable
+                              searchable
+                            />
+                          </Table.Td>
+                          <Table.Td>
+                            <TextInput
+                              size="xs"
+                              value={policy.domain}
+                              onChange={e =>
+                                setUpdateSecurityPolicies(prev =>
+                                  prev.map((p, i) =>
+                                    i === index ? { ...p, domain: e.target.value } : p
+                                  )
+                                )
+                              }
+                            />
+                          </Table.Td>
+                          <Table.Td>
+                            <TextInput
+                              size="xs"
+                              value={policy.allowedTypes}
+                              onChange={e =>
+                                setUpdateSecurityPolicies(prev =>
+                                  prev.map((p, i) =>
+                                    i === index ? { ...p, allowedTypes: e.target.value } : p
+                                  )
+                                )
+                              }
+                            />
+                          </Table.Td>
+                          <Table.Td>
+                            <Button
+                              size="xs"
+                              color="red"
+                              variant="subtle"
+                              onClick={() => handleRemoveSecurityPolicyRow(index)}
+                            >
+                              {t('common.remove')}
+                            </Button>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Group>
+              </>
+            )}
+          </Stack>
+        </Tabs.Panel>
+      </Tabs>
+
+      <Group justify="flex-end" mt="md">
+        <Button variant="subtle" onClick={onClose}>
+          {t('common.cancel')}
+        </Button>
+        <Button onClick={handleSave} loading={saving}>
+          {t('common.save')}
+        </Button>
+      </Group>
     </Modal>
   );
 }
@@ -673,21 +983,21 @@ export function SignZoneModal({
         params.saltLength = saltLength;
       }
       await apiClient.post('/zones/dnssec/sign', params);
-      success(t('common.success'), 'Zone signed successfully');
+      success(t('common.success'), t('zones.zoneSigned'));
       onClose();
       onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to sign zone');
+      error(t('common.error'), t('zones.signFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Sign Zone: ${zone}`} size="lg">
+    <Modal opened={opened} onClose={onClose} title={`${t('zones.signZone')}: ${zone}`} size="lg">
       <Stack>
         <Select
-          label="Algorithm"
+          label={t('zones.algorithm')}
           data={['RSA', 'ECDSA', 'EDDSA']}
           value={algorithm}
           onChange={v => setAlgorithm(v || 'ECDSA')}
@@ -696,13 +1006,13 @@ export function SignZoneModal({
         {algorithm === 'RSA' && (
           <>
             <Select
-              label="Hash Algorithm"
+              label={t('zones.hashAlgorithm')}
               data={['SHA1', 'SHA256', 'SHA512']}
               value={hashAlgorithm}
               onChange={v => setHashAlgorithm(v || 'SHA256')}
             />
             <NumberInput
-              label="KSK Key Size"
+              label={t('zones.kskKeySize')}
               value={kskKeySize}
               onChange={v => setKskKeySize(Number(v))}
               min={1024}
@@ -710,7 +1020,7 @@ export function SignZoneModal({
               disabled={!!pemKsk}
             />
             <NumberInput
-              label="ZSK Key Size"
+              label={t('zones.zskKeySize')}
               value={zskKeySize}
               onChange={v => setZskKeySize(Number(v))}
               min={512}
@@ -722,7 +1032,7 @@ export function SignZoneModal({
 
         {algorithm === 'ECDSA' && (
           <Select
-            label="Curve"
+            label={t('zones.curve')}
             data={['P256', 'P384']}
             value={curve}
             onChange={v => setCurve(v || 'P256')}
@@ -731,7 +1041,7 @@ export function SignZoneModal({
 
         {algorithm === 'EDDSA' && (
           <Select
-            label="Curve"
+            label={t('zones.curve')}
             data={['ED25519', 'ED448']}
             value={curve}
             onChange={v => setCurve(v || 'ED25519')}
@@ -739,16 +1049,16 @@ export function SignZoneModal({
         )}
 
         <Textarea
-          label="KSK Private Key (PEM, optional)"
-          placeholder="Paste PEM private key..."
+          label={t('zones.kskPrivateKey')}
+          placeholder={t('zones.pemPlaceholder')}
           value={pemKsk}
           onChange={e => setPemKsk(e.target.value)}
           minRows={3}
           autosize
         />
         <Textarea
-          label="ZSK Private Key (PEM, optional)"
-          placeholder="Paste PEM private key..."
+          label={t('zones.zskPrivateKey')}
+          placeholder={t('zones.pemPlaceholder')}
           value={pemZsk}
           onChange={e => setPemZsk(e.target.value)}
           minRows={3}
@@ -756,7 +1066,7 @@ export function SignZoneModal({
         />
 
         <NumberInput
-          label="ZSK Auto Rollover (days)"
+          label={t('zones.zskAutoRollover')}
           value={zskRolloverDays}
           onChange={v => setZskRolloverDays(Number(v))}
           min={0}
@@ -764,30 +1074,28 @@ export function SignZoneModal({
           disabled={!!pemZsk}
         />
         <TextInput
-          label="DNSKEY TTL"
+          label={t('zones.dnskeyTtl')}
           placeholder="3600"
           value={dnsKeyTtl}
           onChange={e => setDnsKeyTtl(e.target.value)}
         />
 
-        <Radio.Group value={nxProof} onChange={v => setNxProof(v as 'NSEC' | 'NSEC3')}>
-          <Group>
-            <Radio value="NSEC" label="NSEC" />
-            <Radio value="NSEC3" label="NSEC3" />
-          </Group>
-        </Radio.Group>
+        <Group>
+          <Radio checked={nxProof === 'NSEC'} onChange={() => setNxProof('NSEC')} label="NSEC" />
+          <Radio checked={nxProof === 'NSEC3'} onChange={() => setNxProof('NSEC3')} label="NSEC3" />
+        </Group>
 
         {nxProof === 'NSEC3' && (
           <>
             <NumberInput
-              label="Iterations"
+              label={t('zones.iterations')}
               value={iterations}
               onChange={v => setIterations(Number(v))}
               min={0}
               max={100}
             />
             <NumberInput
-              label="Salt Length (bytes)"
+              label={t('zones.saltLength')}
               value={saltLength}
               onChange={v => setSaltLength(Number(v))}
               min={0}
@@ -801,7 +1109,7 @@ export function SignZoneModal({
             {t('common.cancel')}
           </Button>
           <Button onClick={handleSign} loading={saving}>
-            Sign Zone
+            {t('zones.signZone')}
           </Button>
         </Group>
       </Stack>
@@ -820,34 +1128,33 @@ export function UnsignZoneModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const handleUnsign = async () => {
     setSaving(true);
     try {
       await apiClient.post('/zones/dnssec/unsign', { zone });
-      success('Success', 'Zone unsigned successfully');
+      success(t('common.success'), t('zones.zoneUnsignSuccess'));
       onClose();
       onSuccess();
     } catch {
-      error('Error', 'Failed to unsign zone');
+      error(t('common.error'), t('zones.zoneUnsignFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Unsign Zone: ${zone}`} size="sm">
+    <Modal opened={opened} onClose={onClose} title={`${t('zones.unsignZone')}: ${zone}`} size="sm">
       <Stack>
-        <Text>
-          {`Are you sure you want to unsign the zone "${zone}"? This will remove all DNSSEC signatures and records.`}
-        </Text>
+        <Text>{t('zones.unsignConfirm', { zone })}</Text>
         <Group justify="flex-end">
           <Button variant="subtle" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button color="red" onClick={handleUnsign} loading={saving}>
-            Unsign Zone
+            {t('zones.unsignZone')}
           </Button>
         </Group>
       </Stack>
@@ -864,6 +1171,7 @@ export function ViewDsModal({
   opened: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [dsData, setDsData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
@@ -888,23 +1196,29 @@ export function ViewDsModal({
   const dsRecords = (dsData?.dsRecords as Array<Record<string, unknown>>) || [];
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`DS Info: ${zone}`} size="lg">
+    <Modal opened={opened} onClose={onClose} title={`${t('zones.viewDsInfo')}: ${zone}`} size="lg">
       {dsData === null ? (
-        <Text>Loading...</Text>
+        <Text>{t('common.loading')}</Text>
       ) : dsRecords.length === 0 ? (
-        <Text>No DS records found.</Text>
+        <Text>{t('zones.noDsRecords')}</Text>
       ) : (
         <Stack>
           {dsRecords.map((ds, i) => (
             <Stack key={i} gap="xs">
-              <Text fw={600}>Key Tag: {String(ds.keyTag)}</Text>
-              <Text size="sm">
-                Algorithm: {ds.algorithm as string} ({String(ds.algorithmNumber)})
+              <Text fw={600}>
+                {t('zones.keyTag')}: {String(ds.keyTag)}
               </Text>
-              <Text size="sm">State: {ds.dnsKeyState as string}</Text>
+              <Text size="sm">
+                {t('zones.algorithm')}: {ds.algorithm as string} ({String(ds.algorithmNumber)})
+              </Text>
+              <Text size="sm">
+                {t('zones.state')}: {ds.dnsKeyState as string}
+              </Text>
               {(ds.digests as Array<Record<string, string>>)?.map((digest, j) => (
                 <Stack key={j} gap={2}>
-                  <Text size="sm">Digest Type: {digest.digestType}</Text>
+                  <Text size="sm">
+                    {t('zones.digestType')}: {digest.digestType}
+                  </Text>
                   <Code block>{digest.digest}</Code>
                 </Stack>
               ))}
@@ -975,10 +1289,10 @@ export function DnssecPropertiesModal({
         zone,
         dnsKeyTtl: Number(dnsKeyTtl),
       });
-      success(t('common.success'), 'DNSKEY TTL updated');
+      success(t('common.success'), t('zones.dnskeyTtlUpdated'));
       await onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to update DNSKEY TTL');
+      error(t('common.error'), t('zones.dnskeyTtlUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -992,10 +1306,10 @@ export function DnssecPropertiesModal({
         iterations: nsec3Iterations,
         saltLength: nsec3SaltLength,
       });
-      success(t('common.success'), 'Converted to NSEC3');
+      success(t('common.success'), t('zones.convertedToNsec3'));
       await onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to convert to NSEC3');
+      error(t('common.error'), t('zones.convertToNsec3Failed'));
     } finally {
       setSaving(false);
     }
@@ -1005,10 +1319,10 @@ export function DnssecPropertiesModal({
     setSaving(true);
     try {
       await apiClient.post('/zones/dnssec/properties/convertToNSEC', { zone });
-      success(t('common.success'), 'Converted to NSEC');
+      success(t('common.success'), t('zones.convertedToNsec'));
       await onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to convert to NSEC');
+      error(t('common.error'), t('zones.convertToNsecFailed'));
     } finally {
       setSaving(false);
     }
@@ -1022,10 +1336,10 @@ export function DnssecPropertiesModal({
         iterations: nsec3Iterations,
         saltLength: nsec3SaltLength,
       });
-      success(t('common.success'), 'NSEC3 parameters updated');
+      success(t('common.success'), t('zones.nsec3ParamsUpdated'));
       await onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to update NSEC3 parameters');
+      error(t('common.error'), t('zones.nsec3ParamsUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -1035,70 +1349,75 @@ export function DnssecPropertiesModal({
     setSaving(true);
     try {
       await apiClient.post('/zones/dnssec/properties/publishAllPrivateKeys', { zone });
-      success(t('common.success'), 'All private keys published');
+      success(t('common.success'), t('zones.privateKeysPublished'));
       await onSuccess();
     } catch {
-      error(t('common.error'), 'Failed to publish keys');
+      error(t('common.error'), t('zones.publishKeysFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`DNSSEC Properties: ${zone}`} size="lg">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={`${t('zones.dnssecProperties')}: ${zone}`}
+      size="lg"
+    >
       {loading ? (
         <Text>{t('common.loading')}</Text>
       ) : zoneProps ? (
         <Stack>
           <Text size="sm">
-            Status: <Code>{dnssecStatusStr || 'N/A'}</Code> | DNSKEY TTL:{' '}
-            <Code>{String(zoneProps?.dnsKeyTtl ?? 'N/A')}</Code>
+            {t('zones.statusColumn')}: <Code>{dnssecStatusStr || 'N/A'}</Code> |{' '}
+            {t('zones.dnskeyTtl')}: <Code>{String(zoneProps?.dnsKeyTtl ?? 'N/A')}</Code>
           </Text>
 
           <TextInput
-            label="DNSKEY TTL"
+            label={t('zones.dnskeyTtl')}
             value={dnsKeyTtl}
             onChange={e => setDnsKeyTtl(e.target.value)}
           />
           <Group>
             <Button size="sm" onClick={handleUpdateDnsKeyTtl} loading={saving}>
-              Update DNSKEY TTL
+              {t('zones.updateDnskeyTtl')}
             </Button>
           </Group>
 
           {isNsec3 ? (
             <Stack>
               <NumberInput
-                label="NSEC3 Iterations"
+                label={t('zones.nsec3Iterations')}
                 value={nsec3Iterations}
                 onChange={v => setNsec3Iterations(Number(v))}
                 min={0}
               />
               <NumberInput
-                label="NSEC3 Salt Length"
+                label={t('zones.nsec3SaltLength')}
                 value={nsec3SaltLength}
                 onChange={v => setNsec3SaltLength(Number(v))}
                 min={0}
               />
               <Group>
                 <Button size="sm" onClick={handleUpdateNsec3Params} loading={saving}>
-                  Update NSEC3 Params
+                  {t('zones.updateNsec3Params')}
                 </Button>
                 <Button size="sm" variant="default" onClick={handleConvertNsec} loading={saving}>
-                  Convert to NSEC
+                  {t('zones.convertToNsec')}
                 </Button>
               </Group>
             </Stack>
           ) : (
             <Stack>
               <NumberInput
-                label="NSEC3 Iterations"
+                label={t('zones.nsec3Iterations')}
                 value={nsec3Iterations}
                 onChange={v => setNsec3Iterations(Number(v))}
                 min={0}
               />
               <NumberInput
-                label="NSEC3 Salt Length"
+                label={t('zones.nsec3SaltLength')}
                 value={nsec3SaltLength}
                 onChange={v => setNsec3SaltLength(Number(v))}
                 min={0}
@@ -1110,22 +1429,22 @@ export function DnssecPropertiesModal({
                 loading={saving}
                 style={{ alignSelf: 'flex-start' }}
               >
-                Convert to NSEC3
+                {t('zones.convertToNsec3')}
               </Button>
             </Stack>
           )}
 
           <Text fw={600} mt="md">
-            Private Keys ({privateKeys.length})
+            {t('zones.privateKeys', { count: privateKeys.length })}
           </Text>
           {privateKeys.length > 0 ? (
             <Table>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Key Tag</Table.Th>
-                  <Table.Th>Type</Table.Th>
-                  <Table.Th>Algorithm</Table.Th>
-                  <Table.Th>State</Table.Th>
+                  <Table.Th>{t('zones.keyTag')}</Table.Th>
+                  <Table.Th>{t('zones.type')}</Table.Th>
+                  <Table.Th>{t('zones.algorithm')}</Table.Th>
+                  <Table.Th>{t('zones.state')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -1141,16 +1460,16 @@ export function DnssecPropertiesModal({
             </Table>
           ) : (
             <Text c="dimmed" size="sm">
-              No private keys
+              {t('zones.noPrivateKeys')}
             </Text>
           )}
 
           <Button variant="default" onClick={handlePublishAllKeys} loading={saving}>
-            Publish All Private Keys
+            {t('zones.publishAllPrivateKeys')}
           </Button>
         </Stack>
       ) : (
-        <Text c="dimmed">Failed to load properties</Text>
+        <Text c="dimmed">{t('zones.propertiesLoadFailed')}</Text>
       )}
       <Group justify="flex-end" mt="md">
         <Button onClick={onClose}>{t('common.close')}</Button>
@@ -1247,10 +1566,10 @@ export function PermissionsModal({
         .map(p => `${p.name}|${p.canView}|${p.canModify}|${p.canDelete}`)
         .join('|');
       await apiClient.post('/zones/permissions/set', { zone, userPermissions, groupPermissions });
-      success(t('common.success'), 'Permissions updated');
+      success(t('common.success'), t('zones.permissionsUpdated'));
       onClose();
     } catch {
-      error(t('common.error'), 'Failed to update permissions');
+      error(t('common.error'), t('zones.permissionsUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -1261,16 +1580,26 @@ export function PermissionsModal({
 
   if (loading) {
     return (
-      <Modal opened={opened} onClose={onClose} title={`Permissions: ${zone}`} size="lg">
+      <Modal
+        opened={opened}
+        onClose={onClose}
+        title={t('zones.permissionsTitle', { zone })}
+        size="lg"
+      >
         <Text>{t('common.loading')}</Text>
       </Modal>
     );
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Permissions: ${zone}`} size="lg">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={t('zones.permissionsTitle', { zone })}
+      size="lg"
+    >
       <Stack>
-        <Text fw={600}>User Permissions</Text>
+        <Text fw={600}>{t('zones.userPermissions')}</Text>
         <Group>
           <Select
             data={availableUsers.filter(u => !userPerms.find(p => p.username === u))}
@@ -1281,7 +1610,7 @@ export function PermissionsModal({
                 setNewUser('');
               }
             }}
-            placeholder="Add user..."
+            placeholder={t('zones.addUserPlaceholder')}
             clearable
             searchable
           />
@@ -1290,10 +1619,10 @@ export function PermissionsModal({
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>User</Table.Th>
-                <Table.Th>View</Table.Th>
-                <Table.Th>Modify</Table.Th>
-                <Table.Th>Delete</Table.Th>
+                <Table.Th>{t('common.user')}</Table.Th>
+                <Table.Th>{t('common.view')}</Table.Th>
+                <Table.Th>{t('common.modify')}</Table.Th>
+                <Table.Th>{t('common.delete')}</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -1326,7 +1655,7 @@ export function PermissionsModal({
                       variant="subtle"
                       onClick={() => removeUserPerm(p.username)}
                     >
-                      Remove
+                      {t('common.remove')}
                     </Button>
                   </Table.Td>
                 </Table.Tr>
@@ -1335,12 +1664,12 @@ export function PermissionsModal({
           </Table>
         ) : (
           <Text c="dimmed" size="sm">
-            No user permissions
+            {t('zones.noUserPermissions')}
           </Text>
         )}
 
         <Text fw={600} mt="md">
-          Group Permissions
+          {t('zones.groupPermissions')}
         </Text>
         <Group>
           <Select
@@ -1352,7 +1681,7 @@ export function PermissionsModal({
                 setNewGroup('');
               }
             }}
-            placeholder="Add group..."
+            placeholder={t('zones.addGroupPlaceholder')}
             clearable
             searchable
           />
@@ -1361,10 +1690,10 @@ export function PermissionsModal({
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Group</Table.Th>
-                <Table.Th>View</Table.Th>
-                <Table.Th>Modify</Table.Th>
-                <Table.Th>Delete</Table.Th>
+                <Table.Th>{t('common.group')}</Table.Th>
+                <Table.Th>{t('common.view')}</Table.Th>
+                <Table.Th>{t('common.modify')}</Table.Th>
+                <Table.Th>{t('common.delete')}</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -1397,7 +1726,7 @@ export function PermissionsModal({
                       variant="subtle"
                       onClick={() => removeGroupPerm(p.name)}
                     >
-                      Remove
+                      {t('common.remove')}
                     </Button>
                   </Table.Td>
                 </Table.Tr>
@@ -1406,7 +1735,7 @@ export function PermissionsModal({
           </Table>
         ) : (
           <Text c="dimmed" size="sm">
-            No group permissions
+            {t('zones.noGroupPermissions')}
           </Text>
         )}
 

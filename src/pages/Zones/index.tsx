@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActionIcon,
+  Anchor,
   Badge,
   Button,
   Center,
@@ -31,8 +32,11 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { useAtom } from 'jotai';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
+import i18n from '../../i18n';
+import { colorModeAtom, resolveColorMode } from '../../store/theme';
 import type { ZonesListResponse, ZoneInfo } from './types';
 import { ZoneDetailView } from './components/ZoneDetailView';
 import { AddZoneModal } from './components/AddZoneModal';
@@ -43,6 +47,9 @@ import {
   ZoneOptionsModal,
   PermissionsModal,
 } from './components/ZoneModals';
+
+// 表格内 dot Badge 固定 body 背景，避免行 hover 高亮时 badge 融入行背景；文本光标便于选中复制
+const DOT_BADGE_STYLE = { backgroundColor: 'var(--mantine-color-body)', cursor: 'text' };
 
 const ZONE_TYPE_COLORS: Record<string, string> = {
   Primary: 'blue',
@@ -72,7 +79,7 @@ async function fetchZones(page: number, pageSize: number): Promise<ZonesListResp
     `/zones/list?pageNumber=${page}&zonesPerPage=${pageSize}`
   );
   if (response.status !== 'ok' || !response.response) {
-    throw new Error(response.errorMessage || 'Failed to fetch zones');
+    throw new Error(response.errorMessage || i18n.t('zones.loadFailed'));
   }
   return response.response;
 }
@@ -99,11 +106,11 @@ export function ZonesPage() {
   const queryClient = useQueryClient();
 
   const [searchText, setSearchText] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
 
   const page = search.page;
   const pageSize = search.pageSize;
   const selectedZone = search.zone;
+  const filterType = search.filterType || 'all';
 
   const [showSkeleton, setShowSkeleton] = useState(false);
 
@@ -134,17 +141,40 @@ export function ZonesPage() {
     });
   };
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    navigate({
+      to: '/zones',
+      search: {
+        page: 1,
+        pageSize: newPageSize,
+        filterType: filterType === 'all' ? undefined : filterType,
+      },
+    });
+  };
+
+  const handleFilterTypeChange = (newType: string) => {
+    navigate({
+      to: '/zones',
+      search: { page: 1, pageSize, filterType: newType === 'all' ? undefined : newType },
+    });
+  };
+
   const handleSelectZone = (zone: string) => {
     navigate({
       to: '/zones',
-      search: { zone, page: 1, pageSize, recordsPage: 1 },
+      search: {
+        zone,
+        page: 1,
+        pageSize,
+        filterType: filterType === 'all' ? undefined : filterType,
+      },
     });
   };
 
   const handleBackToList = () => {
     navigate({
       to: '/zones',
-      search: { page, pageSize },
+      search: { page, pageSize, filterType: filterType === 'all' ? undefined : filterType },
     });
   };
 
@@ -192,11 +222,12 @@ export function ZonesPage() {
       searchText={searchText}
       onSearchChange={setSearchText}
       filterType={filterType}
-      onFilterTypeChange={setFilterType}
+      onFilterTypeChange={handleFilterTypeChange}
       page={page}
       pageSize={pageSize}
       zoneTypeOptions={zoneTypeOptions}
       onPageChange={handlePageChange}
+      onPageSizeChange={handlePageSizeChange}
       onRefresh={handleRefreshWithCallback}
       onSelectZone={handleSelectZone}
       queryClient={queryClient}
@@ -219,6 +250,7 @@ interface ZoneListViewProps {
   pageSize: number;
   zoneTypeOptions: { value: string; label: string }[];
   onPageChange: (p: number) => void;
+  onPageSizeChange: (size: number) => void;
   onRefresh: () => Promise<void>;
   onSelectZone: (zone: string) => void;
   queryClient: ReturnType<typeof useQueryClient>;
@@ -239,10 +271,17 @@ function ZoneListView({
   pageSize,
   zoneTypeOptions,
   onPageChange,
+  onPageSizeChange,
   onRefresh,
   onSelectZone,
   queryClient,
 }: ZoneListViewProps) {
+  const [colorMode] = useAtom(colorModeAtom);
+  const isDark = resolveColorMode(colorMode) === 'dark';
+  const dotBadgeStyle = {
+    ...DOT_BADGE_STYLE,
+    ...(isDark ? { border: '1px solid var(--mantine-color-dark-4)' } : {}),
+  };
   const [addZoneModalOpen, setAddZoneModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [zoneToDelete, setZoneToDelete] = useState<string | null>(null);
@@ -365,8 +404,9 @@ function ZoneListView({
       </Group>
 
       <Paper shadow="sm" p="md" withBorder>
-        <Group mb="md">
+        <Group mb="md" align="end">
           <TextInput
+            label={t('zones.search')}
             placeholder={t('zones.searchPlaceholder')}
             leftSection={<IconSearch size={16} />}
             value={searchText}
@@ -374,10 +414,19 @@ function ZoneListView({
             style={{ flex: 1 }}
           />
           <Select
+            label={t('zones.type')}
             data={zoneTypeOptions}
             value={filterType}
             onChange={value => onFilterTypeChange(value || 'all')}
             w={150}
+          />
+          <Select
+            label={t('zones.perPage')}
+            data={['10', '25', '50', '100', '250', '500']}
+            value={String(pageSize)}
+            onChange={value => onPageSizeChange(Number(value || 10))}
+            w={90}
+            allowDeselect={false}
           />
         </Group>
 
@@ -387,10 +436,11 @@ function ZoneListView({
             <Table>
               <Table.Thead>
                 <Table.Tr>
+                  <Table.Th style={{ width: 50 }}>#</Table.Th>
                   <Table.Th>{t('zones.name')}</Table.Th>
                   <Table.Th>{t('zones.type')}</Table.Th>
                   <Table.Th>{t('zones.dnssec')}</Table.Th>
-                  <Table.Th>{t('zones.status')}</Table.Th>
+                  <Table.Th>{t('zones.statusColumn')}</Table.Th>
                   <Table.Th>{t('zones.serial')}</Table.Th>
                   <Table.Th>{t('zones.expiry')}</Table.Th>
                   <Table.Th>{t('zones.lastModified')}</Table.Th>
@@ -400,7 +450,7 @@ function ZoneListView({
               <Table.Tbody>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Table.Tr key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <Table.Td key={j}>
                         <Skeleton height={20} />
                       </Table.Td>
@@ -426,10 +476,11 @@ function ZoneListView({
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
+                  <Table.Th style={{ width: 50 }}>#</Table.Th>
                   <Table.Th>{t('zones.name')}</Table.Th>
                   <Table.Th>{t('zones.type')}</Table.Th>
                   <Table.Th>{t('zones.dnssec')}</Table.Th>
-                  <Table.Th>{t('zones.status')}</Table.Th>
+                  <Table.Th>{t('zones.statusColumn')}</Table.Th>
                   <Table.Th>{t('zones.serial')}</Table.Th>
                   <Table.Th>{t('zones.expiry')}</Table.Th>
                   <Table.Th>{t('zones.lastModified')}</Table.Th>
@@ -437,60 +488,89 @@ function ZoneListView({
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {filteredZones.map(zone => {
+                {filteredZones.map((zone, idx) => {
                   const status = getZoneStatus(zone);
                   const dnssecLabel = getDnssecLabel(zone);
                   return (
                     <Table.Tr key={zone.name}>
                       <Table.Td>
+                        <Text size="sm" c="dimmed">
+                          {(page - 1) * pageSize + idx + 1}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
                         <Group gap="xs">
-                          <Text
+                          <Anchor
                             size="sm"
                             fw={500}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => onSelectZone(zone.name)}
+                            style={{ maxWidth: 320 }}
+                            truncate
+                            onClick={e => {
+                              e.preventDefault();
+                              onSelectZone(zone.name);
+                            }}
                           >
                             {zone.nameIdn || zone.name || '<root>'}
-                          </Text>
+                          </Anchor>
                           {zone.nameIdn && (
                             <Tooltip label={zone.name}>
-                              <Badge size="xs" variant="light">
+                              <Badge
+                                size="xs"
+                                variant="dot"
+                                color="gray"
+                                tt="none"
+                                style={dotBadgeStyle}
+                              >
                                 IDN
                               </Badge>
                             </Tooltip>
                           )}
                           {zone.catalog && (
-                            <Badge size="xs" variant="light" color="gray">
+                            <Badge
+                              size="xs"
+                              variant="dot"
+                              color="gray"
+                              tt="none"
+                              style={dotBadgeStyle}
+                            >
                               {zone.catalog}
-                            </Badge>
-                          )}
-                          {zone.internal && (
-                            <Badge size="xs" variant="light" color="gray">
-                              {t('zones.internal')}
                             </Badge>
                           )}
                         </Group>
                       </Table.Td>
                       <Table.Td>
-                        <Badge color={ZONE_TYPE_COLORS[zone.type] || 'gray'} variant="light">
-                          {t(`zones.types.${zone.type}`)}
+                        <Badge
+                          color={zone.internal ? 'gray' : ZONE_TYPE_COLORS[zone.type] || 'gray'}
+                          variant="dot"
+                          size="sm"
+                          tt="none"
+                          style={dotBadgeStyle}
+                        >
+                          {zone.internal ? t('zones.internal') : t(`zones.types.${zone.type}`)}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
                         {dnssecLabel && (
                           <Badge
                             color={zone.hasDnssecPrivateKeys ? 'blue' : 'gray'}
-                            variant="light"
+                            variant="dot"
+                            size="sm"
+                            tt="none"
+                            style={dotBadgeStyle}
                           >
                             {dnssecLabel}
                           </Badge>
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Badge color={ZONE_STATUS_COLORS[status] || 'green'} variant="light">
-                          {t(
-                            `common.${status === 'Enabled' ? 'enabled' : status === 'Disabled' ? 'disabled' : 'warning'}`
-                          )}
+                        <Badge
+                          color={ZONE_STATUS_COLORS[status] || 'green'}
+                          variant="dot"
+                          size="sm"
+                          tt="none"
+                          style={dotBadgeStyle}
+                        >
+                          {t(`zones.status.${status}`)}
                         </Badge>
                       </Table.Td>
                       <Table.Td>

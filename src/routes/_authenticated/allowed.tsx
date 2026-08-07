@@ -1,19 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { createFileRoute } from '@tanstack/react-router';
-import { Paper, Text, Title } from '@mantine/core';
+import { Stack, Title } from '@mantine/core';
+import { ZoneBrowser, ZoneBrowserSearchSchema } from '../../components/ZoneBrowser';
 
 function AllowedPage() {
+  const { t } = useTranslation();
   return (
-    <div>
-      <Title order={2} mb="md">
-        允许列表
-      </Title>
-      <Paper shadow="sm" p="xl" withBorder>
-        <Text c="dimmed">允许列表功能正在开发中...</Text>
-      </Paper>
-    </div>
+    <Stack>
+      <Title order={2}>{t('nav.allowList')}</Title>
+      <ZoneBrowser apiBase="allowed" />
+    </Stack>
   );
 }
 
 export const Route = createFileRoute('/_authenticated/allowed')({
   component: AllowedPage,
+  validateSearch: ZoneBrowserSearchSchema,
 });
