@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   FileInput,
+  Grid,
   Group,
   Modal,
   NumberInput,
@@ -957,42 +958,42 @@ function OptionalProtocolsTab({
       portKey: 'dnsOverUdpProxyPort',
       label: 'DNS-over-UDP-PROXY',
       helpKey: 'enableDnsOverUdpProxyHelp',
-      portHelpKey: 'dnsOverUdpProxyPortHelp',
+      defaultPort: 538,
     },
     {
       key: 'enableDnsOverTcpProxy',
       portKey: 'dnsOverTcpProxyPort',
       label: 'DNS-over-TCP-PROXY',
       helpKey: 'enableDnsOverTcpProxyHelp',
-      portHelpKey: 'dnsOverTcpProxyPortHelp',
+      defaultPort: 538,
     },
     {
       key: 'enableDnsOverHttp',
       portKey: 'dnsOverHttpPort',
       label: 'DNS-over-HTTP',
       helpKey: 'enableDnsOverHttpHelp',
-      portHelpKey: 'dnsOverHttpPortHelp',
+      defaultPort: 80,
     },
     {
       key: 'enableDnsOverTls',
       portKey: 'dnsOverTlsPort',
       label: 'DNS-over-TLS',
       helpKey: 'enableDnsOverTlsHelp',
-      portHelpKey: 'dnsOverTlsPortHelp',
+      defaultPort: 853,
     },
     {
       key: 'enableDnsOverHttps',
       portKey: 'dnsOverHttpsPort',
       label: 'DNS-over-HTTPS',
       helpKey: 'enableDnsOverHttpsHelp',
-      portHelpKey: 'dnsOverHttpsPortHelp',
+      defaultPort: 443,
     },
     {
       key: 'enableDnsOverQuic',
       portKey: 'dnsOverQuicPort',
       label: 'DNS-over-QUIC',
       helpKey: 'enableDnsOverQuicHelp',
-      portHelpKey: 'dnsOverQuicPortHelp',
+      defaultPort: 853,
     },
   ] as const;
 
@@ -1002,23 +1003,25 @@ function OptionalProtocolsTab({
     <Stack>
       <Paper shadow="sm" p="md" withBorder>
         {protocols.map(p => (
-          <Group align="flex-start" key={p.key} mt="xs">
-            <Checkbox
-              label={t('settings.enableProtocol', { name: p.label })}
-              checked={s[p.key]}
-              onChange={e => set({ [p.key]: e.currentTarget.checked } as Partial<Settings>)}
-              style={{ width: 260 }}
-              description={t(`settings.${p.helpKey}`)}
-            />
-            <TextInput
-              label={t('settings.port')}
-              value={s[p.portKey]}
-              onChange={e => set({ [p.portKey]: e.target.value } as Partial<Settings>)}
-              w={120}
-              disabled={!s[p.key]}
-              description={t(`settings.${p.portHelpKey}`)}
-            />
-          </Group>
+          <Grid key={p.key} mt="xs" align="flex-start">
+            <Grid.Col span={{ base: 12, sm: 8 }}>
+              <Checkbox
+                label={t('settings.enableProtocol', { name: p.label })}
+                checked={s[p.key]}
+                onChange={e => set({ [p.key]: e.currentTarget.checked } as Partial<Settings>)}
+                description={t(`settings.${p.helpKey}`)}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
+              <TextInput
+                label={t('settings.port')}
+                value={s[p.portKey]}
+                onChange={e => set({ [p.portKey]: e.target.value } as Partial<Settings>)}
+                disabled={!s[p.key]}
+                description={t('settings.portDefault', { port: p.defaultPort })}
+              />
+            </Grid.Col>
+          </Grid>
         ))}
         <Checkbox
           mt="sm"
@@ -1268,6 +1271,7 @@ function RecursionTab({ s, set }: { s: Settings; set: (patch: Partial<Settings>)
           value={toList(s.recursionNetworkACL)}
           onChange={e => set({ recursionNetworkACL: e.target.value.split('\n') })}
           minRows={4}
+          autosize
           disabled={!showAcl}
         />
         <Text size="xs" c="dimmed" mt="sm">
@@ -1654,6 +1658,7 @@ function BlockingTab({
           value={toList(s.customBlockingAddresses)}
           onChange={e => set({ customBlockingAddresses: e.target.value.split('\n') })}
           minRows={3}
+          autosize
           disabled={!enabled || s.blockingType !== 'CustomAddress'}
         />
         <div
@@ -1729,6 +1734,7 @@ function BlockingTab({
           value={toList(s.blockListUrls)}
           onChange={e => set({ blockListUrls: e.target.value.split('\n') })}
           minRows={4}
+          autosize
           disabled={!enabled}
         />
         <Text size="xs" c="dimmed" mt="xs">
@@ -1751,10 +1757,12 @@ function BlockingTab({
           <Select
             styles={{
               root: { display: 'flex', flexDirection: 'column' },
+              wrapper: { flexGrow: 1 },
               description: { flexGrow: 1 },
             }}
             label={t('common.quickAdd')}
             placeholder={t('settings.selectQuickBlockList')}
+            description={t('settings.quickAddHelp')}
             data={[
               { value: 'none', label: t('settings.none') },
               ...quickBlockLists.map(x => ({ value: x.name, label: x.name })),
@@ -1913,6 +1921,7 @@ function ProxyForwardersTab({ s, set }: { s: Settings; set: (patch: Partial<Sett
               value={toList(s.proxy?.bypass)}
               onChange={e => updateProxy({ bypass: e.target.value.split('\n') })}
               minRows={3}
+              autosize
             />
           </>
         )}
@@ -1930,6 +1939,7 @@ function ProxyForwardersTab({ s, set }: { s: Settings; set: (patch: Partial<Sett
           value={toList(s.forwarders)}
           onChange={e => set({ forwarders: e.target.value.split('\n') })}
           minRows={4}
+          autosize
           description={t('settings.forwardersHelp')}
         />
         <Select

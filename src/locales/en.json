@@ -1401,7 +1401,9 @@
     "backupZipFile": "Backup ZIP File",
     "selectBackupZipPlaceholder": "Select backup zip file",
     "selectItemsToRestore": "Select items to restore:",
-    "deleteExistingFiles": "Delete Existing Files"
+    "deleteExistingFiles": "Delete Existing Files",
+    "quickAddHelp": "Select a known block list to add its URLs to the field above.",
+    "portDefault": "(default {{port}})"
   },
   "about": {
     "version": "Version {{version}}",

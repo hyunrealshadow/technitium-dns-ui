@@ -1401,7 +1401,9 @@
     "backupZipFile": "备份 ZIP 文件",
     "selectBackupZipPlaceholder": "选择备份 zip 文件",
     "selectItemsToRestore": "选择要还原的项目：",
-    "deleteExistingFiles": "删除现有文件"
+    "deleteExistingFiles": "删除现有文件",
+    "quickAddHelp": "选择内置阻止列表，将其 URL 添加到上方字段。",
+    "portDefault": "（默认 {{port}}）"
   },
   "about": {
     "version": "版本 {{version}}",

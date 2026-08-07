@@ -3,10 +3,12 @@ import {
   ActionIcon,
   Anchor,
   Badge,
+  Box,
   Breadcrumbs,
   Button,
   Center,
   DataList,
+  Divider,
   Group,
   Modal,
   Paper,
@@ -125,6 +127,18 @@ function getParentDomain(domain: string): string {
   return domain.substring(i + 1);
 }
 
+// SVCB/HTTPS 的 svcParams：后端返回对象（key → value），格式化为 zone 文件惯例的 key="value" 序列；
+// 兼容数组（旧格式）与原始值
+function formatSvcParams(value: unknown): string {
+  if (Array.isArray(value)) return (value as unknown[]).map(String).join(' ');
+  if (value !== null && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, val]) => `${key}="${String(val)}"`)
+      .join(' ');
+  }
+  return String(value ?? '');
+}
+
 function formatRecordData(record: ZoneBrowserRecord, truncate = false): string {
   const d = record.rData;
   if (!d) return '';
@@ -190,10 +204,7 @@ function formatRecordData(record: ZoneBrowserRecord, truncate = false): string {
   if (d.uriPriority != null) return `[${s(d.uriPriority)}|${s(d.uriWeight ?? 0)}] ${s(d.uri)}`;
   // SVCB / HTTPS
   if (d.svcPriority != null) {
-    const params = Array.isArray(d.svcParams)
-      ? (d.svcParams as string[]).join(' ')
-      : s(d.svcParams);
-    return `[${s(d.svcPriority)}] ${s(d.svcTargetName)}${params ? ` ${params}` : ''}`;
+    return `[${s(d.svcPriority)}] ${s(d.svcTargetName)}${d.svcParams ? ` ${formatSvcParams(d.svcParams)}` : ''}`;
   }
   // DNSKEY: 标志 协议 算法 公钥
   if (d.publicKey != null) {
@@ -230,7 +241,16 @@ function formatRecordData(record: ZoneBrowserRecord, truncate = false): string {
   // APP
   if (d.classPath) return s(d.classPath);
   // 未知类型回退
-  if (d.dataType != null && d.data != null) return `${s(d.dataType)}: ${s(d.data)}`;
+  if (d.dataType != null && d.data != null) {
+    // 负缓存/特殊缓存记录（如 DnsSpecialCacheRecordData）：data 形如
+    // "NegativeCache: NoError; Synthesized: ...; <SOA 记录>"，
+    // 数据列只显示关键摘要，SOA 等细节留在展开区查看
+    if (truncate && d.dataType === 'DnsSpecialCacheRecordData' && typeof d.data === 'string') {
+      const summary = d.data.split(';')[0]?.trim();
+      if (summary) return summary;
+    }
+    return `${s(d.dataType)}: ${s(d.data)}`;
+  }
   return JSON.stringify(d);
 }
 
@@ -781,11 +801,11 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
             </Center>
           ) : (
             <>
-              <Table striped highlightOnHover>
+              <Table striped highlightOnHover layout="fixed">
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
-                    <Table.Th>{t('zones.recordName')}</Table.Th>
+                    <Table.Th style={{ width: 240 }}>{t('zones.recordName')}</Table.Th>
                     <Table.Th style={{ width: 180 }}>{t('zones.recordTTL')}</Table.Th>
                     <Table.Th>{t('zones.recordData')}</Table.Th>
                     {hasStatusColumn && (
@@ -819,10 +839,15 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                             <Text size="sm">{record.ttlString || record.ttl}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Group gap={4} wrap="nowrap">
-                              <Text size="sm" style={{ maxWidth: 360 }} truncate="end">
-                                {formatRecordData(record, true)}
-                              </Text>
+                            <Group gap={6} wrap="nowrap" align="flex-start">
+                              <Box style={{ flex: 1, minWidth: 0 }}>
+                                <Text
+                                  size="sm"
+                                  style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                                >
+                                  {formatRecordData(record, true)}
+                                </Text>
+                              </Box>
                               <ActionIcon
                                 size="sm"
                                 variant="subtle"
@@ -872,32 +897,48 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                               colSpan={hasStatusColumn ? 5 : 4}
                               style={{ backgroundColor: 'var(--mantine-color-body)' }}
                             >
-                              <Stack gap="xs">
-                                <Text
-                                  size="sm"
-                                  style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                              <Stack gap="md">
+                                {/* 记录数据：标准 zone 文件格式，等宽代码块便于复制 */}
+                                <Box
+                                  p="sm"
+                                  style={{
+                                    fontFamily: 'var(--mantine-font-family-monospace)',
+                                    fontSize: 'var(--mantine-font-size-sm)',
+                                    lineHeight: 1.6,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-all',
+                                    backgroundColor: 'var(--mantine-color-default-hover)',
+                                    border: '1px solid var(--mantine-color-default-border)',
+                                    borderRadius: 'var(--mantine-radius-md)',
+                                  }}
                                 >
                                   {formatRecordData(record)}
-                                </Text>
+                                </Box>
                                 {recordFields.length > 0 && (
-                                  <DataList size="sm" labelWidth={260} withDivider>
-                                    {recordFields.map(field => (
-                                      <DataList.Item key={field.label}>
-                                        <DataList.ItemLabel>{field.label}</DataList.ItemLabel>
-                                        <DataList.ItemValue>
-                                          <Text
-                                            size="sm"
-                                            style={{
-                                              whiteSpace: 'pre-wrap',
-                                              wordBreak: 'break-all',
-                                            }}
-                                          >
-                                            {field.value}
-                                          </Text>
-                                        </DataList.ItemValue>
-                                      </DataList.Item>
-                                    ))}
-                                  </DataList>
+                                  <>
+                                    <Divider />
+                                    <DataList size="sm" labelWidth={200} withDivider>
+                                      {recordFields.map(field => (
+                                        <DataList.Item key={field.label}>
+                                          <DataList.ItemLabel c="dimmed">
+                                            {field.label}
+                                          </DataList.ItemLabel>
+                                          <DataList.ItemValue>
+                                            <Text
+                                              size="sm"
+                                              style={{
+                                                fontFamily: 'var(--mantine-font-family-monospace)',
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-all',
+                                              }}
+                                            >
+                                              {field.value}
+                                            </Text>
+                                          </DataList.ItemValue>
+                                        </DataList.Item>
+                                      ))}
+                                    </DataList>
+                                  </>
                                 )}
                               </Stack>
                             </Table.Td>
