@@ -30,6 +30,8 @@ export interface LoginResponse {
   server: string;
   // 登录成功时的服务器信息，含当前用户权限（info.permissions，键为 PermissionSection 枚举名）
   info?: {
+    version?: string;
+    dnsServerDomain?: string;
     permissions?: UserPermissions;
   };
   errorMessage?: string;

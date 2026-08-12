@@ -54,6 +54,8 @@ export function LoginPage() {
             token,
             displayName: response.displayName,
             isSsoUser: response.isSsoUser,
+            dnsServerDomain: response.info?.dnsServerDomain,
+            serverVersion: response.info?.version,
             permissions,
           });
         })
@@ -104,6 +106,8 @@ export function LoginPage() {
           token,
           displayName: response.displayName,
           isSsoUser: false,
+          dnsServerDomain: response.info?.dnsServerDomain,
+          serverVersion: response.info?.version,
           permissions,
         });
         // 跳转到第一个有查看权限的页面；无权限数据（旧会话兼容）时回退到仪表板

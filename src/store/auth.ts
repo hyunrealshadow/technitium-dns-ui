@@ -8,6 +8,8 @@ export interface UserSession {
   token: string;
   displayName?: string;
   isSsoUser?: boolean;
+  dnsServerDomain?: string;
+  serverVersion?: string;
   // 当前用户各权限 section 的查看/修改/删除权限（登录响应 info.permissions），
   // 用于导航菜单过滤；旧会话无此字段时菜单全部显示（安全回退）
   permissions?: UserPermissions;

@@ -51,8 +51,9 @@ function getMantineColorScheme(colorMode: string): 'light' | 'dark' {
 
 export function App() {
   const [colorMode] = useAtom(colorModeAtom);
-  const [session] = useAtom(sessionAtom);
+  const [session, setSession] = useAtom(sessionAtom);
   const lastTokenRef = React.useRef<string | null>(null);
+  const titleInfoTokenRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const currentToken = session?.token || null;
@@ -61,6 +62,52 @@ export function App() {
       apiClient.setToken(currentToken);
     }
   }, [session]);
+
+  // 兼容升级前已保存在 localStorage、尚未包含服务器标题信息的会话。
+  React.useEffect(() => {
+    if (!session?.token) {
+      titleInfoTokenRef.current = null;
+      return;
+    }
+    if (
+      (session.dnsServerDomain && session.serverVersion) ||
+      titleInfoTokenRef.current === session.token
+    ) {
+      return;
+    }
+
+    titleInfoTokenRef.current = session.token;
+
+    let cancelled = false;
+    apiClient
+      .getSessionInfo(session.token)
+      .then(response => {
+        if (cancelled || response.status !== 'ok') return;
+
+        setSession(current => {
+          if (!current || current.token !== session.token) return current;
+
+          return {
+            ...current,
+            dnsServerDomain: response.info?.dnsServerDomain,
+            serverVersion: response.info?.version,
+            permissions: response.info?.permissions ?? current.permissions,
+          };
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.dnsServerDomain, session?.serverVersion, session?.token, setSession]);
+
+  React.useEffect(() => {
+    document.title =
+      session?.dnsServerDomain && session.serverVersion
+        ? `${session.dnsServerDomain} - Technitium DNS Server v${session.serverVersion}`
+        : 'Technitium DNS Server';
+  }, [session?.dnsServerDomain, session?.serverVersion]);
 
   React.useEffect(() => {
     const newScheme = getMantineColorScheme(colorMode);
