@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActionIcon,
   Anchor,
@@ -537,10 +537,22 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
 
   const records = data?.records ?? EMPTY_RECORDS;
   const zones = data?.zones ?? EMPTY_ZONES;
-  const displayDomain = data?.domainIdn || data?.domain || '';
+  // 允许/阻止列表后端会跳过没有记录且只有一个子域的中间层，例如根请求可能直接解析到 com。
+  // 所有浏览 UI 和操作必须使用后端最终解析到的域名，避免列表内容与面包屑/删除目标不同步。
+  const resolvedDomain = data?.domain ?? currentDomain;
+  const displayDomain = data?.domainIdn || resolvedDomain;
   const hasStatusColumn = records.some(r => r.disabled !== undefined);
   // DNS 服务器列：仅缓存记录带 responseMetadata（上游来源服务器），允许/阻止列表无此字段时不显示该列
   const hasDnsServerColumn = records.some(r => !!r.responseMetadata?.nameServer);
+
+  useEffect(() => {
+    if (data?.domain === undefined || data.domain === currentDomain) return;
+
+    navigate({
+      search: { domain: data.domain || undefined } as never,
+      replace: true,
+    });
+  }, [currentDomain, data?.domain, navigate]);
 
   const flushMessages = {
     cache: {
@@ -568,8 +580,8 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
         onClick: () => updateSearch({ domain: '' }),
       },
     ];
-    if (currentDomain) {
-      const parts = currentDomain.split('.');
+    if (resolvedDomain) {
+      const parts = resolvedDomain.split('.');
       for (let i = parts.length - 1; i >= 0; i--) {
         // 每级用块级常量绑定，避免闭包捕获循环结束后变化的 acc
         const level = parts.slice(i).join('.');
@@ -584,7 +596,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
       }
     }
     return items;
-  }, [currentDomain, displayDomain, t, updateSearch]);
+  }, [resolvedDomain, displayDomain, t, updateSearch]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['zone-browser', apiBase] });
 
@@ -614,12 +626,12 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   };
 
   const handleDelete = async () => {
-    if (!currentDomain) return;
+    if (!resolvedDomain) return;
     try {
-      const res = await apiClient.post(`/${apiBase}/delete`, { domain: currentDomain });
+      const res = await apiClient.post(`/${apiBase}/delete`, { domain: resolvedDomain });
       if (res.status !== 'ok') throw new Error(res.errorMessage || 'Failed');
       success(t('common.success'), t('zoneTree.deleted'));
-      updateSearch({ domain: getParentDomain(currentDomain) });
+      updateSearch({ domain: getParentDomain(resolvedDomain) });
       setConfirmAction(null);
       await invalidate();
     } catch {
@@ -691,24 +703,27 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
         </Stack>
         <Group gap="xs">
           <Button
+            size="xs"
             variant="default"
-            leftSection={<IconRefresh size={16} />}
+            leftSection={<IconRefresh size={15} />}
             onClick={() => refetch()}
             loading={isLoading}
           >
             {t('common.refresh')}
           </Button>
           <Button
+            size="xs"
             variant="light"
             color="red"
-            leftSection={<IconX size={16} />}
+            leftSection={<IconX size={15} />}
             onClick={() => setConfirmAction('flush')}
           >
             {t('zoneTree.flush')}
           </Button>
           {isZones && (
             <Button
-              leftSection={<IconPlus size={16} />}
+              size="xs"
+              leftSection={<IconPlus size={15} />}
               color={apiBase === 'allowed' ? 'teal' : 'orange'}
               onClick={handleAdd}
             >
@@ -717,8 +732,9 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
           )}
           {isZones && (
             <Button
+              size="xs"
               variant="default"
-              leftSection={<IconUpload size={16} />}
+              leftSection={<IconUpload size={15} />}
               onClick={() => setImportOpen(true)}
             >
               {t('common.import')}
@@ -726,8 +742,9 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
           )}
           {isZones && (
             <Button
+              size="xs"
               variant="default"
-              leftSection={<IconDownload size={16} />}
+              leftSection={<IconDownload size={15} />}
               onClick={handleExport}
             >
               {t('common.export')}
@@ -736,9 +753,15 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
         </Group>
       </Group>
 
-      <Grid gutter="md" align="flex-start">
-        <Grid.Col span={{ base: 12, md: 4, lg: 3, xl: 2 }}>
-          <Paper shadow="xs" p="md" withBorder className={classes.zonePanel}>
+      <Grid gap="md" align="flex-start">
+        <Grid.Col span={{ base: 12, md: 'content' }}>
+          <Paper
+            shadow="xs"
+            p="md"
+            withBorder
+            w={{ base: '100%', md: 280 }}
+            className={classes.zonePanel}
+          >
             <Text fw={600} size="sm" mb="sm">
               {t('zoneTree.subDomains')}
             </Text>
@@ -759,7 +782,11 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                 {t('zoneTree.noSubDomains')}
               </Text>
             ) : (
-              <ScrollArea.Autosize mah="calc(100vh - 300px)" type="auto" offsetScrollbars>
+              <ScrollArea.Autosize
+                mah={{ base: 360, md: 'calc(100vh - 300px)' }}
+                type="auto"
+                offsetScrollbars
+              >
                 <Stack gap={2}>
                   {zones.map(zone => (
                     <Button
@@ -780,7 +807,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
           </Paper>
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, md: 8, lg: 9, xl: 10 }} className={classes.recordsColumn}>
+        <Grid.Col span={{ base: 12, md: 'auto' }} className={classes.recordsColumn}>
           <Paper shadow="xs" p={{ base: 'sm', sm: 'md' }} withBorder>
             <Group justify="space-between" mb="md" wrap="wrap" gap="xs">
               <Text fw={600}>
@@ -791,7 +818,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
               </Text>
               <Group gap="xs">
                 {/* 删除当前域：删除整条记录，置于表格 | JSON 切换左侧，黄色警示 */}
-                {currentDomain !== '' && (
+                {resolvedDomain !== '' && (
                   <Button
                     size="xs"
                     color="yellow"
@@ -1106,7 +1133,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
         <Text mb="lg">
           {confirmAction === 'flush'
             ? flushMessages[apiBase].confirm
-            : t('zoneTree.deleteConfirm', { domain: currentDomain })}
+            : t('zoneTree.deleteConfirm', { domain: resolvedDomain })}
         </Text>
         <Group justify="flex-end">
           <Button variant="subtle" onClick={() => setConfirmAction(null)}>

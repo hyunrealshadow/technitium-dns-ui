@@ -16,6 +16,7 @@ import { IconDotsVertical, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { AdminGroup } from '../types';
 
 function AddGroupForm({
@@ -209,57 +210,67 @@ export function GroupsTab() {
 
   if (editingGroup) {
     return (
-      <GroupForm
-        group={editingGroup}
-        onDone={() => {
-          setEditingGroup(null);
-          loadGroups();
-        }}
-      />
+      <Stack>
+        <PageHeader title={t('nav.admin')} />
+        <GroupForm
+          group={editingGroup}
+          onDone={() => {
+            setEditingGroup(null);
+            loadGroups();
+          }}
+        />
+      </Stack>
     );
   }
 
   return (
-    <Stack mt="md">
-      <Group justify="flex-end">
-        <Button onClick={() => setShowAddForm(true)}>{t('admin.addGroup')}</Button>
-      </Group>
+    <Stack>
+      <PageHeader
+        title={t('nav.admin')}
+        actions={
+          <Button size="xs" onClick={() => setShowAddForm(true)}>
+            {t('admin.addGroup')}
+          </Button>
+        }
+      />
       {showAddForm && <AddGroupForm onCancel={() => setShowAddForm(false)} onAdd={addGroup} />}
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('common.name')}</Table.Th>
-              <Table.Th>{t('common.description')}</Table.Th>
-              <Table.Th style={{ width: 40 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {groups.map((group, i) => (
-              <Table.Tr key={i}>
-                <Table.Td>{group.name}</Table.Td>
-                <Table.Td>{group.description}</Table.Td>
-                <Table.Td>
-                  <Menu position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray" size="sm">
-                        <IconDotsVertical size={14} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item onClick={() => setEditingGroup(group)}>
-                        {t('admin.editGroup')}
-                      </Menu.Item>
-                      <Menu.Item color="red" onClick={() => deleteGroup(group.name)}>
-                        {t('admin.deleteGroup')}
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </Table.Td>
+        <Table.ScrollContainer minWidth={680}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{t('common.name')}</Table.Th>
+                <Table.Th>{t('common.description')}</Table.Th>
+                <Table.Th style={{ width: 40 }}></Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {groups.map((group, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td>{group.name}</Table.Td>
+                  <Table.Td>{group.description}</Table.Td>
+                  <Table.Td>
+                    <Menu position="bottom-end" shadow="sm">
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray" size="sm">
+                          <IconDotsVertical size={14} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item onClick={() => setEditingGroup(group)}>
+                          {t('admin.editGroup')}
+                        </Menu.Item>
+                        <Menu.Item color="red" onClick={() => deleteGroup(group.name)}>
+                          {t('admin.deleteGroup')}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         <Text size="sm" fw={600} mt="sm">
           {t('admin.totalGroups', { count: groups.length })}
         </Text>

@@ -50,18 +50,18 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <>
       <AppShell
-        header={{ height: 60 }}
+        header={{ height: 64 }}
         navbar={{
-          width: 250,
-          breakpoint: 'sm',
+          width: { md: 240, xl: 264 },
+          breakpoint: 'md',
           collapsed: { mobile: !opened },
         }}
-        padding="md"
+        padding={{ base: 'sm', md: 'md', xl: 'lg' }}
       >
         <AppShell.Header className="app-header">
           <Group h="100%" px="md" justify="space-between" wrap="nowrap">
             <Group gap="sm" wrap="nowrap">
-              <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+              <Burger opened={opened} onClick={toggle} hiddenFrom="md" size="sm" />
               <Box className="brand-mark" w={34} h={34}>
                 <img
                   src="/logo.png"
@@ -123,7 +123,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <NavLinks />
         </AppShell.Navbar>
 
-        <AppShell.Main>{children}</AppShell.Main>
+        <AppShell.Main className="app-main">{children}</AppShell.Main>
       </AppShell>
 
       <AppearanceModal opened={settingsOpened} onClose={closeSettings} />

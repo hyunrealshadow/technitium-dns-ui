@@ -3,6 +3,7 @@ import { Button, Group, Paper, Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { DhcpScope } from '../types';
 import { ScopeForm } from '../components/ScopeForm';
 
@@ -82,83 +83,93 @@ export function ScopesTab() {
 
   if (showAddForm || editingScope !== null) {
     return (
-      <ScopeForm
-        scopeName={editingScope}
-        onDone={() => {
-          setShowAddForm(false);
-          setEditingScope(null);
-          loadScopes();
-        }}
-      />
+      <Stack>
+        <PageHeader title={t('nav.dhcp')} />
+        <ScopeForm
+          scopeName={editingScope}
+          onDone={() => {
+            setShowAddForm(false);
+            setEditingScope(null);
+            loadScopes();
+          }}
+        />
+      </Stack>
     );
   }
 
   return (
-    <Stack mt="md">
-      <Group justify="flex-end">
-        <Button onClick={() => setShowAddForm(true)}>{t('dhcp.addScope')}</Button>
-      </Group>
+    <Stack>
+      <PageHeader
+        title={t('nav.dhcp')}
+        actions={
+          <Button size="xs" onClick={() => setShowAddForm(true)}>
+            {t('dhcp.addScope')}
+          </Button>
+        }
+      />
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('common.name')}</Table.Th>
-              <Table.Th>{t('dhcp.scopeRange')}</Table.Th>
-              <Table.Th>{t('dhcp.networkBroadcast')}</Table.Th>
-              <Table.Th>{t('dhcp.interface')}</Table.Th>
-              <Table.Th style={{ width: 200 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {scopes.length === 0 ? (
+        <Table.ScrollContainer minWidth={760}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
               <Table.Tr>
-                <Table.Td colSpan={5} align="center">
-                  <Text c="dimmed" size="sm">
-                    {t('dhcp.noScopeFound')}
-                  </Text>
-                </Table.Td>
+                <Table.Th>{t('common.name')}</Table.Th>
+                <Table.Th>{t('dhcp.scopeRange')}</Table.Th>
+                <Table.Th>{t('dhcp.networkBroadcast')}</Table.Th>
+                <Table.Th>{t('dhcp.interface')}</Table.Th>
+                <Table.Th style={{ width: 200 }}></Table.Th>
               </Table.Tr>
-            ) : (
-              scopes.map(scope => (
-                <Table.Tr key={scope.name}>
-                  <Table.Td>{scope.name}</Table.Td>
-                  <Table.Td>
-                    {scope.startingAddress} - {scope.endingAddress}
-                    <br />
-                    {scope.subnetMask}
-                  </Table.Td>
-                  <Table.Td>
-                    {scope.networkAddress}
-                    <br />
-                    {scope.broadcastAddress}
-                  </Table.Td>
-                  <Table.Td>{scope.interfaceAddress || ''}</Table.Td>
-                  <Table.Td>
-                    <Group gap={4}>
-                      <Button
-                        size="xs"
-                        variant="default"
-                        onClick={() => setEditingScope(scope.name)}
-                      >
-                        {t('common.edit')}
-                      </Button>
-                      <Button
-                        size="xs"
-                        color={scope.enabled ? 'yellow' : 'gray'}
-                        onClick={() => setScopeEnabled(scope.name, !scope.enabled)}
-                      >
-                        {scope.enabled ? t('dhcp.disable') : t('dhcp.enable')}
-                      </Button>
-                      <Button size="xs" color="red" onClick={() => deleteScope(scope.name)}>
-                        {t('common.delete')}
-                      </Button>
-                    </Group>
+            </Table.Thead>
+            <Table.Tbody>
+              {scopes.length === 0 ? (
+                <Table.Tr>
+                  <Table.Td colSpan={5} align="center">
+                    <Text c="dimmed" size="sm">
+                      {t('dhcp.noScopeFound')}
+                    </Text>
                   </Table.Td>
                 </Table.Tr>
-              ))
-            )}
-          </Table.Tbody>
-        </Table>
+              ) : (
+                scopes.map(scope => (
+                  <Table.Tr key={scope.name}>
+                    <Table.Td>{scope.name}</Table.Td>
+                    <Table.Td>
+                      {scope.startingAddress} - {scope.endingAddress}
+                      <br />
+                      {scope.subnetMask}
+                    </Table.Td>
+                    <Table.Td>
+                      {scope.networkAddress}
+                      <br />
+                      {scope.broadcastAddress}
+                    </Table.Td>
+                    <Table.Td>{scope.interfaceAddress || ''}</Table.Td>
+                    <Table.Td>
+                      <Group gap={4}>
+                        <Button
+                          size="xs"
+                          variant="default"
+                          onClick={() => setEditingScope(scope.name)}
+                        >
+                          {t('common.edit')}
+                        </Button>
+                        <Button
+                          size="xs"
+                          color={scope.enabled ? 'yellow' : 'gray'}
+                          onClick={() => setScopeEnabled(scope.name, !scope.enabled)}
+                        >
+                          {scope.enabled ? t('dhcp.disable') : t('dhcp.enable')}
+                        </Button>
+                        <Button size="xs" color="red" onClick={() => deleteScope(scope.name)}>
+                          {t('common.delete')}
+                        </Button>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         {scopes.length > 0 && (
           <Text size="sm" fw={600} mt="sm">
             {t('dhcp.totalScopes', { count: scopes.length })}

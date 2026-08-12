@@ -95,13 +95,7 @@ export function OptionalProtocolsTab({
         <Text fw={600} mb="sm">
           {t('settings.tlsCertificateHeading')}
         </Text>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
-          }}
-        >
+        <div className="form-grid form-grid--2">
           <TextInput
             styles={{
               root: { display: 'flex', flexDirection: 'column' },
@@ -137,13 +131,7 @@ export function OptionalProtocolsTab({
         <Text fw={600} mb="sm">
           {t('settings.reverseProxyRealIp')}
         </Text>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
-          }}
-        >
+        <div className="form-grid form-grid--2">
           <TextInput
             styles={{
               root: { display: 'flex', flexDirection: 'column' },

@@ -210,6 +210,8 @@ export function DnsClientPage() {
 
           {viewMode === 'json' ? (
             <CodeMirror
+              // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
+              key={isDark ? 'dark' : 'light'}
               value={JSON.stringify(result, null, 2)}
               readOnly
               height="600px"
@@ -340,7 +342,8 @@ export function DnsClientPage() {
                       <Stack gap="sm">
                         {rawResponses.map((raw, i) => (
                           <CodeMirror
-                            key={i}
+                            // theme 是创建期扩展，主题变化时用 key 强制重建编辑器
+                            key={`${i}-${isDark ? 'dark' : 'light'}`}
                             value={JSON.stringify(raw, null, 2)}
                             readOnly
                             height="300px"

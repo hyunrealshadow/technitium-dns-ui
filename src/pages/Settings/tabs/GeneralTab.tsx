@@ -1,4 +1,13 @@
-import { Checkbox, Group, Paper, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  Checkbox,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { QpmRow, Settings } from '../types';
 import { toList, toArray } from '../constants';
@@ -60,10 +69,8 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
           description={t('settings.dnsServerLocalEndPointsHelp')}
         />
         <div
+          className="form-grid form-grid--2"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >
@@ -103,7 +110,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
         <Text fw={600} mb="sm">
           {t('settings.defaults')}
         </Text>
-        <Group align="flex-start" grow>
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           <TextInput
             label={t('settings.defaultRecordTtl')}
             description={t('settings.defaultRecordTtlHelp')}
@@ -122,8 +129,8 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             value={s.defaultSoaRecordTtl}
             onChange={e => set({ defaultSoaRecordTtl: e.target.value })}
           />
-        </Group>
-        <Group align="flex-start" grow mt="sm">
+        </SimpleGrid>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="sm">
           <TextInput
             label={t('settings.defaultResponsiblePerson')}
             description={t('settings.defaultResponsiblePersonHelp')}
@@ -137,12 +144,10 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             onChange={e => set({ useSoaSerialDateScheme: e.currentTarget.checked })}
             mt={30}
           />
-        </Group>
+        </SimpleGrid>
         <div
+          className="form-grid form-grid--3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >
@@ -221,7 +226,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
         <Text fw={600} mb="sm">
           {t('settings.udpSocketPool')}
         </Text>
-        <Group align="flex-start" grow>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
           <Checkbox
             label={t('settings.udpSocketPool')}
             description={t('settings.udpSocketPoolHelp')}
@@ -235,7 +240,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             onChange={e => set({ socketPoolExcludedPorts: toArray(e.target.value).split(',') })}
             disabled={!s.enableUdpSocketPool}
           />
-        </Group>
+        </SimpleGrid>
         <Text size="xs" c="dimmed" mt="sm">
           {t('settings.udpSocketPoolNote')}
         </Text>
@@ -282,13 +287,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
         <Text fw={600} mb="sm">
           {t('settings.ednsClientSubnet')}
         </Text>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
-          }}
-        >
+        <div className="form-grid form-grid--3">
           <Checkbox
             styles={{
               root: { display: 'flex', flexDirection: 'column' },
@@ -322,7 +321,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             disabled={!s.eDnsClientSubnet}
           />
         </div>
-        <Group align="flex-start" grow mt="sm">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="sm">
           <TextInput
             label={t('settings.ecsIpv4Override')}
             description={t('settings.ecsIpv4OverrideHelp')}
@@ -337,7 +336,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             onChange={e => set({ eDnsClientSubnetIpv6Override: e.target.value })}
             disabled={!s.eDnsClientSubnet}
           />
-        </Group>
+        </SimpleGrid>
         <Text size="xs" c="dimmed" mt="sm">
           {t('settings.ecsWarning')}
         </Text>
@@ -377,10 +376,8 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
           {t('settings.qpmNote2')}
         </Text>
         <div
+          className="form-grid form-grid--3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >
@@ -422,13 +419,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
         <Text fw={600} mb="sm">
           {t('settings.advancedOptions')}
         </Text>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
-          }}
-        >
+        <div className="form-grid form-grid--3">
           <TextInput
             styles={{
               root: { display: 'flex', flexDirection: 'column' },
@@ -460,7 +451,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             onChange={e => set({ tcpReceiveTimeout: e.target.value })}
           />
         </div>
-        <Group align="flex-start" grow mt="sm">
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md" mt="sm">
           <TextInput
             label={t('settings.quicIdleTimeout')}
             description={t('settings.quicIdleTimeoutHelp')}
@@ -479,7 +470,7 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             value={s.listenBacklog}
             onChange={e => set({ listenBacklog: e.target.value })}
           />
-        </Group>
+        </SimpleGrid>
         <Group align="flex-start" grow mt="sm">
           <TextInput
             label={t('settings.maxConcurrentResolutions')}

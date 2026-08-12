@@ -76,6 +76,8 @@ export function AppConfigModal({
     >
       <Stack>
         <CodeMirror
+          // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
+          key={isDark ? 'dark' : 'light'}
           value={configText}
           onChange={setConfigText}
           height="400px"

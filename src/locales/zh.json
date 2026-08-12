@@ -711,7 +711,9 @@
       "nextHashedOwnerName": "下一个哈希所有者名称",
       "hashAlgorithm": "哈希算法",
       "types": "类型"
-    }
+    },
+    "dnsServer": "DNS 服务器",
+    "responseMetadataTitle": "响应元数据"
   },
   "admin": {
     "sessionDeleteConfirm": "确定要删除会话 [{{token}}] 吗？",

@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import {
   Badge,
+  Box,
   Button,
   Code,
   FileInput,
+  Grid,
   Group,
   Modal,
   Paper,
   Skeleton,
   Stack,
-  Table,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { IconDownload, IconPlus, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,7 @@ import type { App } from './types';
 import { getTypeLabels } from './constants';
 import { AppStoreModal } from './components/AppStoreModal';
 import { AppConfigModal } from './components/AppConfigModal';
+import { PageHeader } from '../../components/PageHeader';
 
 export function AppsPage() {
   const { t } = useTranslation();
@@ -200,21 +201,31 @@ export function AppsPage() {
   }
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('nav.apps')}</Title>
-        <Group>
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setStoreOpen(true)}>
-            {t('apps.appStore')}
-          </Button>
-          <Button leftSection={<IconDownload size={16} />} onClick={() => setInstallOpen(true)}>
-            {t('apps.install')}
-          </Button>
-          <Button leftSection={<IconRefresh size={16} />} onClick={fetchApps}>
-            {t('common.refresh')}
-          </Button>
-        </Group>
-      </Group>
+    <Stack maw={1440} mx="auto" w="100%">
+      <PageHeader
+        title={t('nav.apps')}
+        actions={
+          <>
+            <Button
+              size="xs"
+              leftSection={<IconPlus size={15} />}
+              onClick={() => setStoreOpen(true)}
+            >
+              {t('apps.appStore')}
+            </Button>
+            <Button
+              size="xs"
+              leftSection={<IconDownload size={15} />}
+              onClick={() => setInstallOpen(true)}
+            >
+              {t('apps.install')}
+            </Button>
+            <Button size="xs" leftSection={<IconRefresh size={15} />} onClick={fetchApps}>
+              {t('common.refresh')}
+            </Button>
+          </>
+        }
+      />
 
       {apps.length === 0 ? (
         <Paper shadow="sm" p="xl" withBorder>
@@ -223,12 +234,12 @@ export function AppsPage() {
           </Text>
         </Paper>
       ) : (
-        <Paper shadow="sm" p="md" withBorder>
-          <Table>
-            <Table.Tbody>
-              {apps.map(app => (
-                <Table.Tr key={app.name}>
-                  <Table.Td style={{ verticalAlign: 'top' }}>
+        <Paper shadow="sm" p={0} withBorder>
+          <Stack gap={0}>
+            {apps.map(app => (
+              <Box key={app.name} className="app-list-item" p={{ base: 'md', sm: 'lg' }}>
+                <Grid gap={{ base: 'md', sm: 'xl' }}>
+                  <Grid.Col span={{ base: 12, sm: 9, xl: 10 }}>
                     <Text fw={700} size="lg">
                       {app.name}
                     </Text>
@@ -248,46 +259,39 @@ export function AppsPage() {
                       </Text>
                     )}
                     {app.dnsApps.length > 0 && (
-                      <Table withRowBorders={false} verticalSpacing={6} mt={8}>
-                        <Table.Tbody>
-                          {app.dnsApps.map((dnsApp, idx) => (
-                            <Table.Tr key={idx}>
-                              <Table.Td style={{ width: '45%', verticalAlign: 'top' }}>
-                                <Text size="sm">{dnsApp.classPath}</Text>
-                                <Group gap={4} mt={4}>
-                                  {getTypeLabels(dnsApp, t).map(label => (
-                                    <Badge
-                                      key={label.label}
-                                      size="xs"
-                                      color={label.color}
-                                      tt="none"
-                                    >
-                                      {label.label}
-                                    </Badge>
-                                  ))}
-                                </Group>
-                              </Table.Td>
-                              <Table.Td style={{ verticalAlign: 'top' }}>
-                                <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                                  {dnsApp.description}
-                                </Text>
-                                {dnsApp.isAppRecordRequestHandler && dnsApp.recordDataTemplate && (
-                                  <Stack gap={2} mt={4}>
-                                    <Text size="xs" fw={600}>
-                                      {t('apps.recordDataTemplate')}
-                                    </Text>
-                                    <Code block>{dnsApp.recordDataTemplate}</Code>
-                                  </Stack>
-                                )}
-                              </Table.Td>
-                            </Table.Tr>
-                          ))}
-                        </Table.Tbody>
-                      </Table>
+                      <Stack gap="md" mt="md">
+                        {app.dnsApps.map((dnsApp, idx) => (
+                          <Grid key={idx} gap={{ base: 'xs', sm: 'lg' }}>
+                            <Grid.Col span={{ base: 12, md: 5 }}>
+                              <Text size="sm">{dnsApp.classPath}</Text>
+                              <Group gap={4} mt={4}>
+                                {getTypeLabels(dnsApp, t).map(label => (
+                                  <Badge key={label.label} size="xs" color={label.color} tt="none">
+                                    {label.label}
+                                  </Badge>
+                                ))}
+                              </Group>
+                            </Grid.Col>
+                            <Grid.Col span={{ base: 12, md: 7 }}>
+                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                                {dnsApp.description}
+                              </Text>
+                              {dnsApp.isAppRecordRequestHandler && dnsApp.recordDataTemplate && (
+                                <Stack gap={2} mt={4}>
+                                  <Text size="xs" fw={600}>
+                                    {t('apps.recordDataTemplate')}
+                                  </Text>
+                                  <Code block>{dnsApp.recordDataTemplate}</Code>
+                                </Stack>
+                              )}
+                            </Grid.Col>
+                          </Grid>
+                        ))}
+                      </Stack>
                     )}
-                  </Table.Td>
-                  <Table.Td style={{ width: 140, verticalAlign: 'top' }}>
-                    <Stack gap={6}>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3, xl: 2 }}>
+                    <Group className="app-item-actions" gap={6}>
                       <Button size="xs" variant="default" onClick={() => setConfigApp(app)}>
                         {t('apps.config')}
                       </Button>
@@ -307,13 +311,13 @@ export function AppsPage() {
                       >
                         {t('apps.uninstall')}
                       </Button>
-                    </Stack>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-          <Text fw={600} mt="sm">
+                    </Group>
+                  </Grid.Col>
+                </Grid>
+              </Box>
+            ))}
+          </Stack>
+          <Text fw={600} p="md">
             {t('apps.totalApps', { count: apps.length })}
           </Text>
         </Paper>

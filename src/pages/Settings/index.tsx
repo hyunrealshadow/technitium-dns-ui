@@ -40,7 +40,13 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       .get<Settings>('/settings/get')
       .then((response: { status: string; response?: Settings }) => {
         if (!cancelled && response.status === 'ok' && response.response) {
-          setSettings({ ...emptySettings, ...response.response });
+          const loadedSettings = { ...emptySettings, ...response.response };
+          for (const key of Object.keys(emptySettings) as (keyof Settings)[]) {
+            if (loadedSettings[key] == null) {
+              Object.assign(loadedSettings, { [key]: emptySettings[key] });
+            }
+          }
+          setSettings(loadedSettings);
         }
       })
       .catch(() => undefined)
@@ -350,30 +356,36 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
     setRestoreItems(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <Stack>
-      <Group align="flex-start" justify="space-between">
+    <Stack maw={1440} mx="auto" w="100%">
+      <Group
+        className="settings-page-header"
+        align="flex-start"
+        justify="space-between"
+        wrap="wrap"
+        gap="sm"
+      >
         <Title order={2}>{t('nav.settings')}</Title>
-        <Group align="flex-start">
-          <Button variant="default" onClick={() => setBackupOpen(true)}>
+        <Group align="flex-start" gap="xs">
+          <Button size="xs" variant="default" onClick={() => setBackupOpen(true)}>
             {t('settings.backup')}
           </Button>
-          <Button variant="default" onClick={() => setRestoreOpen(true)}>
+          <Button size="xs" variant="default" onClick={() => setRestoreOpen(true)}>
             {t('settings.restore')}
           </Button>
-          <Button onClick={save} loading={saving} disabled={loading}>
+          <Button size="xs" onClick={save} loading={saving} disabled={loading}>
             {t('common.save')}
           </Button>
         </Group>
       </Group>
 
       {loading ? (
-        <Stack mt="md" gap="sm">
+        <Stack gap="sm">
           <Skeleton height={140} />
           <Skeleton height={140} />
           <Skeleton height={140} />
         </Stack>
       ) : (
-        <Stack mt="md">
+        <Stack>
           {tab === 'general' && <GeneralTab s={settings} set={set} />}
           {tab === 'webService' && <WebServiceTab s={settings} set={set} />}
           {tab === 'optionalProtocols' && <OptionalProtocolsTab s={settings} set={set} />}

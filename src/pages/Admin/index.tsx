@@ -1,5 +1,3 @@
-import { Stack, Title } from '@mantine/core';
-import { useTranslation } from 'react-i18next';
 import { SessionsTab } from './tabs/SessionsTab';
 import { UsersTab } from './tabs/UsersTab';
 import { GroupsTab } from './tabs/GroupsTab';
@@ -11,15 +9,9 @@ export function AdminPage({
 }: {
   tab?: 'sessions' | 'users' | 'groups' | 'permissions' | 'cluster';
 }) {
-  const { t } = useTranslation();
-  return (
-    <Stack>
-      <Title order={2}>{t('nav.admin')}</Title>
-      {tab === 'users' && <UsersTab />}
-      {tab === 'groups' && <GroupsTab />}
-      {tab === 'permissions' && <PermissionsTab />}
-      {tab === 'cluster' && <ClusterTab />}
-      {tab === 'sessions' && <SessionsTab />}
-    </Stack>
-  );
+  if (tab === 'users') return <UsersTab />;
+  if (tab === 'groups') return <GroupsTab />;
+  if (tab === 'permissions') return <PermissionsTab />;
+  if (tab === 'cluster') return <ClusterTab />;
+  return <SessionsTab />;
 }

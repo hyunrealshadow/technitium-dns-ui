@@ -17,7 +17,14 @@ import { IconDotsVertical, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { AdminUser } from '../types';
+
+function formatDateTime(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
+}
 
 function AddUserForm({
   onCancel,
@@ -253,98 +260,108 @@ export function UsersTab() {
 
   if (editingUser) {
     return (
-      <UserForm
-        user={editingUser}
-        onDone={() => {
-          setEditingUser(null);
-          loadUsers();
-        }}
-      />
+      <Stack>
+        <PageHeader title={t('nav.admin')} />
+        <UserForm
+          user={editingUser}
+          onDone={() => {
+            setEditingUser(null);
+            loadUsers();
+          }}
+        />
+      </Stack>
     );
   }
 
   return (
-    <Stack mt="md">
-      <Group justify="flex-end">
-        <Button onClick={() => setShowAddForm(true)}>{t('admin.addUser')}</Button>
-      </Group>
+    <Stack>
+      <PageHeader
+        title={t('nav.admin')}
+        actions={
+          <Button size="xs" onClick={() => setShowAddForm(true)}>
+            {t('admin.addUser')}
+          </Button>
+        }
+      />
       {showAddForm && <AddUserForm onCancel={() => setShowAddForm(false)} onAdd={addUser} />}
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('common.username')}</Table.Th>
-              <Table.Th>{t('common.displayName')}</Table.Th>
-              <Table.Th>{t('admin.twoFaStatus')}</Table.Th>
-              <Table.Th>{t('admin.status')}</Table.Th>
-              <Table.Th>{t('admin.recentLogin')}</Table.Th>
-              <Table.Th>{t('admin.previousLogin')}</Table.Th>
-              <Table.Th style={{ width: 40 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {users.map((user, i) => (
-              <Table.Tr key={i}>
-                <Table.Td>{user.username}</Table.Td>
-                <Table.Td>{user.displayName}</Table.Td>
-                <Table.Td>
-                  {user.totpEnabled ? (
-                    <Badge size="sm" color="green" variant="light">
-                      {t('common.enabled')}
-                    </Badge>
-                  ) : (
-                    <Badge size="sm" color="gray" variant="light">
-                      {t('common.disabled')}
-                    </Badge>
-                  )}
-                </Table.Td>
-                <Table.Td>
-                  {user.disabled ? (
-                    <Badge size="sm" color="gray" variant="light">
-                      {t('common.disabled')}
-                    </Badge>
-                  ) : (
-                    <Badge size="sm" color="green" variant="light">
-                      {t('common.enabled')}
-                    </Badge>
-                  )}
-                </Table.Td>
-                <Table.Td>{new Date(user.recentLogin).toLocaleString()}</Table.Td>
-                <Table.Td>{new Date(user.previousLogin).toLocaleString()}</Table.Td>
-                <Table.Td>
-                  <Menu position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray" size="sm">
-                        <IconDotsVertical size={14} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item onClick={() => setEditingUser(user)}>
-                        {t('admin.editUser')}
-                      </Menu.Item>
-                      {user.disabled ? (
-                        <Menu.Item onClick={() => setDisabled(user.username, false)}>
-                          {t('admin.enableUser')}
-                        </Menu.Item>
-                      ) : (
-                        <Menu.Item onClick={() => setDisabled(user.username, true)}>
-                          {t('admin.disableUser')}
-                        </Menu.Item>
-                      )}
-                      <Menu.Item
-                        color="red"
-                        onClick={() => deleteUser(user.username)}
-                        disabled={user.username === 'admin'}
-                      >
-                        {t('admin.deleteUser')}
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </Table.Td>
+        <Table.ScrollContainer minWidth={820}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{t('common.username')}</Table.Th>
+                <Table.Th>{t('common.displayName')}</Table.Th>
+                <Table.Th>{t('admin.twoFaStatus')}</Table.Th>
+                <Table.Th>{t('admin.status')}</Table.Th>
+                <Table.Th>{t('admin.recentLogin')}</Table.Th>
+                <Table.Th>{t('admin.previousLogin')}</Table.Th>
+                <Table.Th style={{ width: 40 }}></Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {users.map((user, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td>{user.username}</Table.Td>
+                  <Table.Td>{user.displayName}</Table.Td>
+                  <Table.Td>
+                    {user.totpEnabled ? (
+                      <Badge size="sm" color="green" variant="light">
+                        {t('common.enabled')}
+                      </Badge>
+                    ) : (
+                      <Badge size="sm" color="gray" variant="light">
+                        {t('common.disabled')}
+                      </Badge>
+                    )}
+                  </Table.Td>
+                  <Table.Td>
+                    {user.disabled ? (
+                      <Badge size="sm" color="gray" variant="light">
+                        {t('common.disabled')}
+                      </Badge>
+                    ) : (
+                      <Badge size="sm" color="green" variant="light">
+                        {t('common.enabled')}
+                      </Badge>
+                    )}
+                  </Table.Td>
+                  <Table.Td>{formatDateTime(user.recentLogin)}</Table.Td>
+                  <Table.Td>{formatDateTime(user.previousLogin)}</Table.Td>
+                  <Table.Td>
+                    <Menu position="bottom-end" shadow="sm">
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray" size="sm">
+                          <IconDotsVertical size={14} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item onClick={() => setEditingUser(user)}>
+                          {t('admin.editUser')}
+                        </Menu.Item>
+                        {user.disabled ? (
+                          <Menu.Item onClick={() => setDisabled(user.username, false)}>
+                            {t('admin.enableUser')}
+                          </Menu.Item>
+                        ) : (
+                          <Menu.Item onClick={() => setDisabled(user.username, true)}>
+                            {t('admin.disableUser')}
+                          </Menu.Item>
+                        )}
+                        <Menu.Item
+                          color="red"
+                          onClick={() => deleteUser(user.username)}
+                          disabled={user.username === 'admin'}
+                        >
+                          {t('admin.deleteUser')}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         <Text size="sm" fw={600} mt="sm">
           {t('admin.totalUsers', { count: users.length })}
         </Text>

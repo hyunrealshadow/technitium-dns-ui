@@ -102,6 +102,7 @@ function AppNavLink({ item }: { item: NavItem }) {
   if (!item.children) {
     return (
       <NavLink
+        className="app-nav-link"
         component={Link}
         to={item.to}
         label={t(item.labelKey)}
@@ -115,6 +116,7 @@ function AppNavLink({ item }: { item: NavItem }) {
   const isActive = currentPath.startsWith(item.to.split('/').slice(0, 2).join('/'));
   return (
     <NavLink
+      className="app-nav-link"
       label={t(item.labelKey)}
       leftSection={<item.icon size={20} stroke={1.6} />}
       defaultOpened={isActive}
@@ -123,6 +125,7 @@ function AppNavLink({ item }: { item: NavItem }) {
     >
       {item.children.map(child => (
         <NavLink
+          className="app-nav-child"
           key={child.to}
           component={Link}
           to={child.to}

@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import { SECTION_NAV_KEYS } from '../../../utils/permissions';
 import type { PermissionItem } from '../types';
 
@@ -126,7 +127,8 @@ export function PermissionsTab() {
     SECTION_NAV_KEYS[section] ? t(SECTION_NAV_KEYS[section]) : section;
 
   return (
-    <Stack mt="md" gap="md">
+    <Stack gap="md">
+      <PageHeader title={t('nav.admin')} />
       {permissions.map((item, i) => {
         const userRows = (item.userPermissions || []).map(p => ({
           name: p.username,

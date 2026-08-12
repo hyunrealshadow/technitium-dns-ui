@@ -18,6 +18,7 @@ import { IconDotsVertical } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { AdminSession } from '../types';
 
 export function SessionsTab() {
@@ -94,75 +95,82 @@ export function SessionsTab() {
   };
 
   return (
-    <Stack mt="md">
-      <Group justify="flex-end">
-        <Button onClick={openCreateToken}>{t('admin.createToken')}</Button>
-      </Group>
+    <Stack>
+      <PageHeader
+        title={t('nav.admin')}
+        actions={
+          <Button size="xs" onClick={openCreateToken}>
+            {t('admin.createToken')}
+          </Button>
+        }
+      />
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('common.username')}</Table.Th>
-              <Table.Th>{t('admin.session')}</Table.Th>
-              <Table.Th>{t('admin.lastSeen')}</Table.Th>
-              <Table.Th>{t('admin.remoteAddress')}</Table.Th>
-              <Table.Th>{t('admin.userAgent')}</Table.Th>
-              <Table.Th style={{ width: 40 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {sessions.map((session, i) => (
-              <Table.Tr key={i}>
-                <Table.Td>{session.username}</Table.Td>
-                <Table.Td>
-                  {session.tokenName && <Text size="sm">{session.tokenName}</Text>}
-                  <Text size="sm">[{session.partialToken}]</Text>
-                  {session.isCurrentSession && (
-                    <Text size="xs" c="dimmed">
-                      {t('admin.currentSession')}
-                    </Text>
-                  )}
-                  <Badge
-                    size="xs"
-                    variant={session.type === 'Standard' ? 'default' : 'light'}
-                    color={session.type === 'ApiToken' ? 'blue' : 'yellow'}
-                  >
-                    {session.type === 'Standard'
-                      ? t('admin.sessionTypeStandard')
-                      : session.type === 'ApiToken'
-                        ? t('admin.sessionTypeApiToken')
-                        : t('admin.sessionTypeUnknown')}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm">{new Date(session.lastSeen).toLocaleString()}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm">{session.lastSeenRemoteAddress}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" style={{ maxWidth: 200 }} truncate="end">
-                    {session.lastSeenUserAgent}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Menu position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray" size="sm">
-                        <IconDotsVertical size={14} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item color="red" onClick={() => deleteSession(session)}>
-                        {t('admin.deleteSession')}
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </Table.Td>
+        <Table.ScrollContainer minWidth={820}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{t('common.username')}</Table.Th>
+                <Table.Th>{t('admin.session')}</Table.Th>
+                <Table.Th>{t('admin.lastSeen')}</Table.Th>
+                <Table.Th>{t('admin.remoteAddress')}</Table.Th>
+                <Table.Th>{t('admin.userAgent')}</Table.Th>
+                <Table.Th style={{ width: 40 }}></Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {sessions.map((session, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td>{session.username}</Table.Td>
+                  <Table.Td>
+                    {session.tokenName && <Text size="sm">{session.tokenName}</Text>}
+                    <Text size="sm">[{session.partialToken}]</Text>
+                    {session.isCurrentSession && (
+                      <Text size="xs" c="dimmed">
+                        {t('admin.currentSession')}
+                      </Text>
+                    )}
+                    <Badge
+                      size="xs"
+                      variant={session.type === 'Standard' ? 'default' : 'light'}
+                      color={session.type === 'ApiToken' ? 'blue' : 'yellow'}
+                    >
+                      {session.type === 'Standard'
+                        ? t('admin.sessionTypeStandard')
+                        : session.type === 'ApiToken'
+                          ? t('admin.sessionTypeApiToken')
+                          : t('admin.sessionTypeUnknown')}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{new Date(session.lastSeen).toLocaleString()}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{session.lastSeenRemoteAddress}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" style={{ maxWidth: 200 }} truncate="end">
+                      {session.lastSeenUserAgent}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Menu position="bottom-end" shadow="sm">
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray" size="sm">
+                          <IconDotsVertical size={14} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item color="red" onClick={() => deleteSession(session)}>
+                          {t('admin.deleteSession')}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         <Text size="sm" fw={600} mt="sm">
           {t('admin.totalSessions', { count: sessions.length })}
         </Text>

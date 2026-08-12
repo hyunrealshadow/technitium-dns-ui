@@ -117,10 +117,8 @@ export function BlockingTab({
           disabled={!enabled || s.blockingType !== 'CustomAddress'}
         />
         <div
+          className="form-grid form-grid--2"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >
@@ -202,10 +200,8 @@ export function BlockingTab({
           {t('settings.blockListUrlsNote3')}
         </Text>
         <div
+          className="form-grid form-grid--3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >

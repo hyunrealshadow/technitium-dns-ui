@@ -58,73 +58,61 @@ export const foldGutterExtension = foldGutter({
   },
 });
 
-// 浅色模式语法高亮：使用 Mantine 色板（深色档位，适合浅色背景）
-const lightHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: 'var(--mantine-color-blue-7)' },
-  { tag: [tags.string, tags.special(tags.string)], color: 'var(--mantine-color-green-8)' },
-  { tag: [tags.number, tags.bool, tags.null], color: 'var(--mantine-color-orange-8)' },
-  { tag: [tags.propertyName, tags.attributeName], color: 'var(--mantine-color-cyan-8)' },
-  { tag: [tags.typeName, tags.className], color: 'var(--mantine-color-violet-8)' },
-  { tag: [tags.regexp, tags.escape], color: 'var(--mantine-color-red-7)' },
-  {
-    tag: [tags.comment, tags.lineComment, tags.blockComment],
-    color: 'var(--mantine-color-dimmed)',
-    fontStyle: 'italic',
-  },
-  { tag: [tags.punctuation, tags.bracket, tags.operator], color: 'var(--mantine-color-gray-7)' },
-  { tag: tags.meta, color: 'var(--mantine-color-dimmed)' },
-]);
-
-// 浅色模式现代主题：背景融入容器、柔和行高亮、Mantine 强调色选中、现代 tooltip/搜索面板
-const lightUiTheme = EditorView.theme(
+// 浅色模式：Atom One Light 主题（配色对齐 atom/one-light-syntax）
+// UI 层：背景 #fafafa、文本 #383a42、选区/行高亮灰、gutter 浅灰
+const oneLightUi = EditorView.theme(
   {
     '&': {
-      backgroundColor: 'transparent',
-      color: 'var(--mantine-color-text)',
+      backgroundColor: '#fafafa',
+      color: '#383a42',
     },
     '&.cm-focused': {
       outline: 'none',
     },
+    '.cm-content': {
+      caretColor: '#526eff',
+    },
     '.cm-cursor, .cm-dropCursor': {
-      borderLeftColor: 'var(--mantine-color-text)',
+      borderLeftColor: '#526eff',
     },
     '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'var(--mantine-color-primary-light)',
+      backgroundColor: '#e5e5e6',
     },
     '.cm-gutters': {
-      backgroundColor: 'transparent',
-      color: 'var(--mantine-color-dimmed)',
-      borderRight: '1px solid var(--mantine-color-default-border)',
+      backgroundColor: '#fafafa',
+      color: '#a0a1a7',
+      borderRight: '1px solid #e5e5e6',
     },
     '.cm-activeLine': {
-      backgroundColor: 'var(--mantine-color-default-hover)',
+      backgroundColor: 'rgba(229, 229, 230, 0.6)',
     },
     '.cm-activeLineGutter': {
       backgroundColor: 'transparent',
-      color: 'var(--mantine-color-text)',
+      color: '#383a42',
     },
     '.cm-searchMatch': {
-      backgroundColor: 'var(--mantine-color-yellow-light)',
+      backgroundColor: '#e5e5e6',
       outline: 'none',
     },
     '.cm-searchMatch-selected': {
-      backgroundColor: 'var(--mantine-color-yellow-3)',
+      backgroundColor: '#a0a1a7',
+      color: '#fafafa',
     },
     '.cm-matchingBracket': {
-      backgroundColor: 'var(--mantine-color-gray-2)',
+      backgroundColor: '#e5e5e6',
       outline: 'none',
     },
     '.cm-tooltip': {
-      backgroundColor: 'var(--mantine-color-body)',
-      border: '1px solid var(--mantine-color-default-border)',
+      backgroundColor: '#fafafa',
+      border: '1px solid #e5e5e6',
       borderRadius: 'var(--mantine-radius-md)',
       boxShadow: 'var(--mantine-shadow-md)',
-      color: 'var(--mantine-color-text)',
+      color: '#383a42',
       overflow: 'hidden',
     },
     '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
-      backgroundColor: 'var(--mantine-color-primary-light)',
-      color: 'var(--mantine-color-text)',
+      backgroundColor: '#e5e5e6',
+      color: '#383a42',
     },
     '.cm-tooltip-autocomplete > ul > li': {
       padding: '2px 8px',
@@ -133,5 +121,23 @@ const lightUiTheme = EditorView.theme(
   { dark: false }
 );
 
-// 浅色模式完整主题（UI + 语法高亮），深色模式继续使用 oneDark
-export const codeMirrorLightTheme = [lightUiTheme, syntaxHighlighting(lightHighlightStyle)];
+// Atom One Light 语法高亮配色
+const oneLightHighlightStyle = HighlightStyle.define([
+  { tag: [tags.keyword, tags.modifier, tags.self], color: '#a626a4' },
+  { tag: [tags.string, tags.special(tags.string), tags.inserted], color: '#50a14f' },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: '#986801' },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: '#4078f2' },
+  { tag: [tags.propertyName, tags.attributeName], color: '#986801' },
+  { tag: [tags.typeName, tags.className, tags.namespace], color: '#c18401' },
+  { tag: [tags.tagName, tags.heading], color: '#e45649' },
+  { tag: [tags.regexp, tags.escape, tags.link], color: '#50a14f' },
+  {
+    tag: [tags.comment, tags.lineComment, tags.blockComment, tags.meta],
+    color: '#a0a1a7',
+    fontStyle: 'italic',
+  },
+  { tag: [tags.punctuation, tags.bracket, tags.operator], color: '#383a42' },
+]);
+
+// 浅色模式完整主题（Atom One Light），深色模式继续使用 oneDark
+export const codeMirrorLightTheme = [oneLightUi, syntaxHighlighting(oneLightHighlightStyle)];

@@ -6,6 +6,7 @@ import {
   Group,
   Button,
   SegmentedControl,
+  ScrollArea,
   Stack,
   Text,
   Skeleton,
@@ -250,10 +251,11 @@ export function DashboardPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
         <Title order={2}>{t('dashboard.title')}</Title>
         <Button
-          leftSection={<IconRefresh size={16} />}
+          size="xs"
+          leftSection={<IconRefresh size={15} />}
           onClick={handleManualRefresh}
           loading={isManualRefreshing}
         >
@@ -261,30 +263,42 @@ export function DashboardPage() {
         </Button>
       </Group>
 
-      <SegmentedControl
-        value={statPeriod}
-        onChange={value => {
-          setStatPeriod(value as DashboardSearch['statPeriod']);
-          navigate({
-            to: '/dashboard',
-            search: { statPeriod: value as DashboardSearch['statPeriod'] },
-          });
-        }}
-        data={[
-          { label: t('dashboard.lastHour'), value: 'lastHour' },
-          { label: t('dashboard.lastDay'), value: 'lastDay' },
-          { label: t('dashboard.lastWeek'), value: 'lastWeek' },
-          { label: t('dashboard.lastMonth'), value: 'lastMonth' },
-          { label: t('dashboard.lastYear'), value: 'lastYear' },
-        ]}
-      />
+      <ScrollArea type="never" offsetScrollbars>
+        <SegmentedControl
+          fullWidth
+          miw={560}
+          value={statPeriod}
+          onChange={value => {
+            setStatPeriod(value as DashboardSearch['statPeriod']);
+            navigate({
+              to: '/dashboard',
+              search: { statPeriod: value as DashboardSearch['statPeriod'] },
+            });
+          }}
+          data={[
+            { label: t('dashboard.lastHour'), value: 'lastHour' },
+            { label: t('dashboard.lastDay'), value: 'lastDay' },
+            { label: t('dashboard.lastWeek'), value: 'lastWeek' },
+            { label: t('dashboard.lastMonth'), value: 'lastMonth' },
+            { label: t('dashboard.lastYear'), value: 'lastYear' },
+          ]}
+        />
+      </ScrollArea>
 
       <ErrorBoundary>
         {showSkeleton || isLoading ? (
           <Stack>
             <Grid>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+                <Grid.Col key={i} span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
+                  <Paper shadow="sm" p="md" withBorder h="100%">
+                    <Skeleton height={40} mb="sm" />
+                    <Skeleton height={20} width="60%" />
+                  </Paper>
+                </Grid.Col>
+              ))}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Grid.Col key={i} span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                   <Paper shadow="sm" p="md" withBorder h="100%">
                     <Skeleton height={40} mb="sm" />
                     <Skeleton height={20} width="60%" />
@@ -294,17 +308,7 @@ export function DashboardPage() {
             </Grid>
             <Grid>
               {Array.from({ length: 6 }).map((_, i) => (
-                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
-                  <Paper shadow="sm" p="md" withBorder h="100%">
-                    <Skeleton height={40} mb="sm" />
-                    <Skeleton height={20} width="60%" />
-                  </Paper>
-                </Grid.Col>
-              ))}
-            </Grid>
-            <Grid>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Grid.Col key={i} span={{ base: 12, sm: 6, md: 2 }}>
+                <Grid.Col key={i} span={{ base: 6, sm: 4, md: 2 }}>
                   <Paper shadow="sm" p="md" withBorder h="100%">
                     <Skeleton height={40} mb="sm" />
                     <Skeleton height={20} width="60%" />
@@ -340,7 +344,7 @@ export function DashboardPage() {
         ) : stats ? (
           <Stack>
             <Grid>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
                 <StatCard
                   title={t('dashboard.stats.totalQueries')}
                   value={stats.totalQueries}
@@ -348,7 +352,7 @@ export function DashboardPage() {
                   subtitle="100%"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
                 <StatCard
                   title={t('dashboard.stats.noError')}
                   value={stats.totalNoError}
@@ -356,7 +360,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalNoError, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
                 <StatCard
                   title={t('dashboard.stats.serverFailure')}
                   value={stats.totalServerFailure}
@@ -364,7 +368,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalServerFailure, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
                 <StatCard
                   title={t('dashboard.stats.nxDomain')}
                   value={stats.totalNxDomain}
@@ -372,7 +376,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalNxDomain, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2.4 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2.4 }}>
                 <StatCard
                   title={t('dashboard.stats.refused')}
                   value={stats.totalRefused}
@@ -380,10 +384,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalRefused, stats.totalQueries)}
                 />
               </Grid.Col>
-            </Grid>
-
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.authoritative')}
                   value={stats.totalAuthoritative}
@@ -391,7 +392,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalAuthoritative, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.recursive')}
                   value={stats.totalRecursive}
@@ -399,7 +400,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalRecursive, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.cached')}
                   value={stats.totalCached}
@@ -407,7 +408,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalCached, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.blocked')}
                   value={stats.totalBlocked}
@@ -415,7 +416,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalBlocked, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.dropped')}
                   value={stats.totalDropped}
@@ -423,7 +424,7 @@ export function DashboardPage() {
                   subtitle={formatPercentage(stats.totalDropped, stats.totalQueries)}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 4, lg: 2 }}>
                 <StatCard
                   title={t('dashboard.stats.clients')}
                   value={stats.totalClients}
@@ -433,42 +434,42 @@ export function DashboardPage() {
             </Grid>
 
             <Grid>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.zones')}
                   value={stats.zones}
                   color="blue"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.cachedEntries')}
                   value={stats.cachedEntries}
                   color="violet"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.allowedZones')}
                   value={stats.allowedZones}
                   color="green"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.blockedZones')}
                   value={stats.blockedZones}
                   color="orange"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.allowListZones')}
                   value={stats.allowListZones}
                   color="teal"
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <Grid.Col span={{ base: 6, sm: 4, md: 2 }}>
                 <ServerStatCard
                   title={t('dashboard.stats.blockListZones')}
                   value={stats.blockListZones}

@@ -15,6 +15,7 @@ import { IconDotsVertical } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { DhcpLease } from '../types';
 
 export function LeasesTab() {
@@ -100,76 +101,79 @@ export function LeasesTab() {
   };
 
   return (
-    <Stack mt="md">
+    <Stack>
+      <PageHeader title={t('nav.dhcp')} />
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('dhcp.scope')}</Table.Th>
-              <Table.Th>{t('dhcp.macAddress')}</Table.Th>
-              <Table.Th>{t('dhcp.ipAddress')}</Table.Th>
-              <Table.Th></Table.Th>
-              <Table.Th>{t('dhcp.hostName')}</Table.Th>
-              <Table.Th>{t('dhcp.leaseObtained')}</Table.Th>
-              <Table.Th>{t('dhcp.leaseExpires')}</Table.Th>
-              <Table.Th style={{ width: 40 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {leases.length === 0 ? (
+        <Table.ScrollContainer minWidth={980}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
               <Table.Tr>
-                <Table.Td colSpan={8} align="center">
-                  <Text c="dimmed" size="sm">
-                    {t('dhcp.noLeaseFound')}
-                  </Text>
-                </Table.Td>
+                <Table.Th>{t('dhcp.scope')}</Table.Th>
+                <Table.Th>{t('dhcp.macAddress')}</Table.Th>
+                <Table.Th>{t('dhcp.ipAddress')}</Table.Th>
+                <Table.Th></Table.Th>
+                <Table.Th>{t('dhcp.hostName')}</Table.Th>
+                <Table.Th>{t('dhcp.leaseObtained')}</Table.Th>
+                <Table.Th>{t('dhcp.leaseExpires')}</Table.Th>
+                <Table.Th style={{ width: 40 }}></Table.Th>
               </Table.Tr>
-            ) : (
-              leases.map((lease, i) => (
-                <Table.Tr key={i}>
-                  <Table.Td>{lease.scope}</Table.Td>
-                  <Table.Td>{lease.hardwareAddress}</Table.Td>
-                  <Table.Td>{lease.address}</Table.Td>
-                  <Table.Td>
-                    <Badge
-                      size="sm"
-                      variant={lease.type === 'Reserved' ? 'default' : 'light'}
-                      style={{ cursor: 'text' }}
-                    >
-                      {lease.type}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>{lease.hostName}</Table.Td>
-                  <Table.Td>{new Date(lease.leaseObtained).toLocaleString()}</Table.Td>
-                  <Table.Td>{new Date(lease.leaseExpires).toLocaleString()}</Table.Td>
-                  <Table.Td>
-                    <Menu position="bottom-end" shadow="sm">
-                      <Menu.Target>
-                        <ActionIcon variant="subtle" color="gray" size="sm">
-                          <IconDotsVertical size={14} />
-                        </ActionIcon>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        {lease.type === 'Dynamic' ? (
-                          <Menu.Item onClick={() => convertToReserved(lease)}>
-                            {t('dhcp.convertToReserved')}
-                          </Menu.Item>
-                        ) : (
-                          <Menu.Item onClick={() => convertToDynamic(lease)}>
-                            {t('dhcp.convertToDynamic')}
-                          </Menu.Item>
-                        )}
-                        <Menu.Item color="red" onClick={() => setRemoveTarget(lease)}>
-                          {t('dhcp.removeLease')}
-                        </Menu.Item>
-                      </Menu.Dropdown>
-                    </Menu>
+            </Table.Thead>
+            <Table.Tbody>
+              {leases.length === 0 ? (
+                <Table.Tr>
+                  <Table.Td colSpan={8} align="center">
+                    <Text c="dimmed" size="sm">
+                      {t('dhcp.noLeaseFound')}
+                    </Text>
                   </Table.Td>
                 </Table.Tr>
-              ))
-            )}
-          </Table.Tbody>
-        </Table>
+              ) : (
+                leases.map((lease, i) => (
+                  <Table.Tr key={i}>
+                    <Table.Td>{lease.scope}</Table.Td>
+                    <Table.Td>{lease.hardwareAddress}</Table.Td>
+                    <Table.Td>{lease.address}</Table.Td>
+                    <Table.Td>
+                      <Badge
+                        size="sm"
+                        variant={lease.type === 'Reserved' ? 'default' : 'light'}
+                        style={{ cursor: 'text' }}
+                      >
+                        {lease.type}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>{lease.hostName}</Table.Td>
+                    <Table.Td>{new Date(lease.leaseObtained).toLocaleString()}</Table.Td>
+                    <Table.Td>{new Date(lease.leaseExpires).toLocaleString()}</Table.Td>
+                    <Table.Td>
+                      <Menu position="bottom-end" shadow="sm">
+                        <Menu.Target>
+                          <ActionIcon variant="subtle" color="gray" size="sm">
+                            <IconDotsVertical size={14} />
+                          </ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          {lease.type === 'Dynamic' ? (
+                            <Menu.Item onClick={() => convertToReserved(lease)}>
+                              {t('dhcp.convertToReserved')}
+                            </Menu.Item>
+                          ) : (
+                            <Menu.Item onClick={() => convertToDynamic(lease)}>
+                              {t('dhcp.convertToDynamic')}
+                            </Menu.Item>
+                          )}
+                          <Menu.Item color="red" onClick={() => setRemoveTarget(lease)}>
+                            {t('dhcp.removeLease')}
+                          </Menu.Item>
+                        </Menu.Dropdown>
+                      </Menu>
+                    </Table.Td>
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         {leases.length > 0 && (
           <Text size="sm" fw={600} mt="sm">
             {t('dhcp.totalLeases', { count: leases.length })}

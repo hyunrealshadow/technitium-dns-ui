@@ -40,22 +40,47 @@ export const theme = createTheme({
 
   defaultRadius: 'md',
   cursorType: 'pointer',
-  headings: { fontWeight: '700' },
+  focusRing: 'auto',
+  respectReducedMotion: true,
+  radius: {
+    xs: '4px',
+    sm: '6px',
+    md: '9px',
+    lg: '12px',
+    xl: '16px',
+  },
+  shadows: {
+    xs: '0 1px 2px rgba(15, 23, 42, 0.04)',
+    sm: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
+    md: '0 8px 24px rgba(15, 23, 42, 0.08)',
+    lg: '0 16px 40px rgba(15, 23, 42, 0.11)',
+    xl: '0 24px 64px rgba(15, 23, 42, 0.14)',
+  },
+  headings: {
+    fontWeight: '700',
+    sizes: {
+      h2: { fontSize: '1.75rem', lineHeight: '1.25' },
+      h3: { fontSize: '1.25rem', lineHeight: '1.35' },
+    },
+  },
 
   components: {
     Paper: {
-      defaultProps: { shadow: 'xs' },
+      defaultProps: { shadow: 'xs', radius: 'lg' },
       // 默认背景跟随 --mantine-color-body（与页面底色相同），这里改用表面色
-      // 使浅色模式（页面 #f3f5fa / 卡片 #fff）和深色模式（页面 #101218 / 卡片 dark-6）都形成层次
+      // 使浅色模式（页面浅灰 / 卡片白）和深色模式（页面 dark-8 / 卡片 dark-6）都形成层次
       styles: {
         root: {
           backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--app-border-color)',
         },
       },
     },
     Button: {
+      defaultProps: { radius: 'md' },
       styles: {
         root: {
+          fontWeight: 600,
           transition:
             'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 100ms ease',
           '&:active:not(:disabled)': {
@@ -68,15 +93,9 @@ export const theme = createTheme({
       defaultProps: { variant: 'light' },
       styles: {
         root: {
-          borderRadius: 'var(--mantine-radius-md)',
-          padding: '9px 12px',
+          borderRadius: 'var(--mantine-radius-lg)',
+          padding: '9px 10px',
           transition: 'background-color 120ms ease, color 120ms ease',
-          '&[dataActive]': {
-            backgroundColor: 'var(--mantine-primary-color-light)',
-            color: 'var(--mantine-primary-color-light-color)',
-            fontWeight: 600,
-            boxShadow: 'inset 3px 0 0 var(--mantine-primary-color-filled)',
-          },
         },
         label: {
           fontSize: 'var(--mantine-font-size-sm)',
@@ -88,10 +107,28 @@ export const theme = createTheme({
       styles: {
         th: {
           fontSize: 'var(--mantine-font-size-xs)',
-          fontWeight: 700,
-          letterSpacing: '0.03em',
+          fontWeight: 650,
+          letterSpacing: '0.025em',
           color: 'var(--mantine-color-dimmed)',
         },
+      },
+    },
+    ActionIcon: {
+      defaultProps: { radius: 'md' },
+    },
+    Input: {
+      defaultProps: { radius: 'md' },
+    },
+    InputWrapper: {
+      styles: {
+        label: { fontWeight: 600 },
+        description: { lineHeight: 1.45 },
+      },
+    },
+    SegmentedControl: {
+      defaultProps: { radius: 'md' },
+      styles: {
+        label: { fontWeight: 600 },
       },
     },
     Modal: {
@@ -100,7 +137,12 @@ export const theme = createTheme({
         overlayProps: { backgroundOpacity: 0.55, blur: 4 },
       },
       styles: {
-        title: { fontWeight: 600 },
+        content: {
+          border: '1px solid var(--app-border-color)',
+          boxShadow: 'var(--mantine-shadow-lg)',
+        },
+        header: { paddingBottom: 'var(--mantine-spacing-sm)' },
+        title: { fontWeight: 650 },
       },
     },
     Menu: {
@@ -123,7 +165,7 @@ export const theme = createTheme({
     Tabs: {
       styles: {
         tab: {
-          fontWeight: 500,
+          fontWeight: 600,
           transition: 'color 120ms ease, border-color 120ms ease',
         },
       },

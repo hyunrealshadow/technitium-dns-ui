@@ -16,7 +16,6 @@ import {
   Table,
   Text,
   TextInput,
-  Title,
   Tooltip,
 } from '@mantine/core';
 import {
@@ -35,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
+import { PageHeader } from '../../components/PageHeader';
 import i18n from '../../i18n';
 import { colorModeAtom, resolveColorMode } from '../../store/theme';
 import type { ZonesListResponse, ZoneInfo } from './types';
@@ -391,20 +391,31 @@ function ZoneListView({
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('nav.zones')}</Title>
-        <Group>
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setAddZoneModalOpen(true)}>
-            {t('zones.addZone')}
-          </Button>
-          <Button leftSection={<IconRefresh size={16} />} onClick={onRefresh} loading={isFetching}>
-            {t('common.refresh')}
-          </Button>
-        </Group>
-      </Group>
+      <PageHeader
+        title={t('nav.zones')}
+        actions={
+          <>
+            <Button
+              size="xs"
+              leftSection={<IconPlus size={15} />}
+              onClick={() => setAddZoneModalOpen(true)}
+            >
+              {t('zones.addZone')}
+            </Button>
+            <Button
+              size="xs"
+              leftSection={<IconRefresh size={15} />}
+              onClick={onRefresh}
+              loading={isFetching}
+            >
+              {t('common.refresh')}
+            </Button>
+          </>
+        }
+      />
 
       <Paper shadow="sm" p="md" withBorder>
-        <Group mb="md" align="end">
+        <Group mb="md" align="end" wrap="wrap">
           <TextInput
             label={t('zones.search')}
             placeholder={t('zones.searchPlaceholder')}
@@ -430,90 +441,103 @@ function ZoneListView({
           />
         </Group>
 
-        {showSkeleton ? (
-          <>
-            <Skeleton height={40} mb="sm" />
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th style={{ width: 50 }}>#</Table.Th>
-                  <Table.Th>{t('zones.name')}</Table.Th>
-                  <Table.Th>{t('zones.type')}</Table.Th>
-                  <Table.Th>{t('zones.dnssec')}</Table.Th>
-                  <Table.Th>{t('zones.statusColumn')}</Table.Th>
-                  <Table.Th>{t('zones.serial')}</Table.Th>
-                  <Table.Th>{t('zones.expiry')}</Table.Th>
-                  <Table.Th>{t('zones.lastModified')}</Table.Th>
-                  <Table.Th style={{ width: 60 }}></Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Table.Tr key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
-                      <Table.Td key={j}>
-                        <Skeleton height={20} />
-                      </Table.Td>
-                    ))}
-                    <Table.Td>
-                      <Skeleton height={36} width={36} circle />
-                    </Table.Td>
+        <Table.ScrollContainer minWidth={960}>
+          {showSkeleton ? (
+            <>
+              <Skeleton height={40} mb="sm" />
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th style={{ width: 50 }}>#</Table.Th>
+                    <Table.Th>{t('zones.name')}</Table.Th>
+                    <Table.Th>{t('zones.type')}</Table.Th>
+                    <Table.Th>{t('zones.dnssec')}</Table.Th>
+                    <Table.Th>{t('zones.statusColumn')}</Table.Th>
+                    <Table.Th>{t('zones.serial')}</Table.Th>
+                    <Table.Th>{t('zones.expiry')}</Table.Th>
+                    <Table.Th>{t('zones.lastModified')}</Table.Th>
+                    <Table.Th style={{ width: 60 }}></Table.Th>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </>
-        ) : isError ? (
-          <Center py="xl">
-            <Text>{t('zones.loadFailed')}</Text>
-          </Center>
-        ) : filteredZones.length === 0 ? (
-          <Center py="xl">
-            <Text c="dimmed">{t('common.noData')}</Text>
-          </Center>
-        ) : (
-          <>
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th style={{ width: 50 }}>#</Table.Th>
-                  <Table.Th>{t('zones.name')}</Table.Th>
-                  <Table.Th>{t('zones.type')}</Table.Th>
-                  <Table.Th>{t('zones.dnssec')}</Table.Th>
-                  <Table.Th>{t('zones.statusColumn')}</Table.Th>
-                  <Table.Th>{t('zones.serial')}</Table.Th>
-                  <Table.Th>{t('zones.expiry')}</Table.Th>
-                  <Table.Th>{t('zones.lastModified')}</Table.Th>
-                  <Table.Th style={{ width: 60 }}></Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredZones.map((zone, idx) => {
-                  const status = getZoneStatus(zone);
-                  const dnssecLabel = getDnssecLabel(zone);
-                  return (
-                    <Table.Tr key={zone.name}>
+                </Table.Thead>
+                <Table.Tbody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Table.Tr key={i}>
+                      {Array.from({ length: 8 }).map((_, j) => (
+                        <Table.Td key={j}>
+                          <Skeleton height={20} />
+                        </Table.Td>
+                      ))}
                       <Table.Td>
-                        <Text size="sm" c="dimmed">
-                          {(page - 1) * pageSize + idx + 1}
-                        </Text>
+                        <Skeleton height={36} width={36} circle />
                       </Table.Td>
-                      <Table.Td>
-                        <Group gap="xs">
-                          <Anchor
-                            size="sm"
-                            fw={500}
-                            style={{ maxWidth: 320 }}
-                            truncate
-                            onClick={e => {
-                              e.preventDefault();
-                              onSelectZone(zone.name);
-                            }}
-                          >
-                            {zone.nameIdn || zone.name || '<root>'}
-                          </Anchor>
-                          {zone.nameIdn && (
-                            <Tooltip label={zone.name}>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </>
+          ) : isError ? (
+            <Center py="xl">
+              <Text>{t('zones.loadFailed')}</Text>
+            </Center>
+          ) : filteredZones.length === 0 ? (
+            <Center py="xl">
+              <Text c="dimmed">{t('common.noData')}</Text>
+            </Center>
+          ) : (
+            <>
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th style={{ width: 50 }}>#</Table.Th>
+                    <Table.Th>{t('zones.name')}</Table.Th>
+                    <Table.Th>{t('zones.type')}</Table.Th>
+                    <Table.Th>{t('zones.dnssec')}</Table.Th>
+                    <Table.Th>{t('zones.statusColumn')}</Table.Th>
+                    <Table.Th>{t('zones.serial')}</Table.Th>
+                    <Table.Th>{t('zones.expiry')}</Table.Th>
+                    <Table.Th>{t('zones.lastModified')}</Table.Th>
+                    <Table.Th style={{ width: 60 }}></Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {filteredZones.map((zone, idx) => {
+                    const status = getZoneStatus(zone);
+                    const dnssecLabel = getDnssecLabel(zone);
+                    return (
+                      <Table.Tr key={zone.name}>
+                        <Table.Td>
+                          <Text size="sm" c="dimmed">
+                            {(page - 1) * pageSize + idx + 1}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group gap="xs">
+                            <Anchor
+                              size="sm"
+                              fw={500}
+                              style={{ maxWidth: 320 }}
+                              truncate
+                              onClick={e => {
+                                e.preventDefault();
+                                onSelectZone(zone.name);
+                              }}
+                            >
+                              {zone.nameIdn || zone.name || '<root>'}
+                            </Anchor>
+                            {zone.nameIdn && (
+                              <Tooltip label={zone.name}>
+                                <Badge
+                                  size="xs"
+                                  variant="dot"
+                                  color="gray"
+                                  tt="none"
+                                  style={dotBadgeStyle}
+                                >
+                                  IDN
+                                </Badge>
+                              </Tooltip>
+                            )}
+                            {zone.catalog && (
                               <Badge
                                 size="xs"
                                 variant="dot"
@@ -521,212 +545,201 @@ function ZoneListView({
                                 tt="none"
                                 style={dotBadgeStyle}
                               >
-                                IDN
+                                {zone.catalog}
                               </Badge>
-                            </Tooltip>
-                          )}
-                          {zone.catalog && (
-                            <Badge
-                              size="xs"
-                              variant="dot"
-                              color="gray"
-                              tt="none"
-                              style={dotBadgeStyle}
-                            >
-                              {zone.catalog}
-                            </Badge>
-                          )}
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge
-                          color={zone.internal ? 'gray' : ZONE_TYPE_COLORS[zone.type] || 'gray'}
-                          variant="dot"
-                          size="sm"
-                          tt="none"
-                          style={dotBadgeStyle}
-                        >
-                          {zone.internal ? t('zones.internal') : t(`zones.types.${zone.type}`)}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        {dnssecLabel && (
+                            )}
+                          </Group>
+                        </Table.Td>
+                        <Table.Td>
                           <Badge
-                            color={zone.hasDnssecPrivateKeys ? 'blue' : 'gray'}
+                            color={zone.internal ? 'gray' : ZONE_TYPE_COLORS[zone.type] || 'gray'}
                             variant="dot"
                             size="sm"
                             tt="none"
                             style={dotBadgeStyle}
                           >
-                            {dnssecLabel}
+                            {zone.internal ? t('zones.internal') : t(`zones.types.${zone.type}`)}
                           </Badge>
-                        )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge
-                          color={ZONE_STATUS_COLORS[status] || 'green'}
-                          variant="dot"
-                          size="sm"
-                          tt="none"
-                          style={dotBadgeStyle}
-                        >
-                          {t(`zones.status.${status}`)}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm">{zone.soaSerial ?? '-'}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm">
-                          {zone.expiry ? new Date(zone.expiry).toLocaleString() : '-'}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm">
-                          {zone.lastModified ? new Date(zone.lastModified).toLocaleString() : '-'}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Menu position="bottom-end" shadow="sm">
-                          <Menu.Target>
-                            <ActionIcon variant="subtle" color="gray">
-                              <IconDotsVertical size={16} />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item
-                              leftSection={<IconEdit size={14} />}
-                              onClick={() => onSelectZone(zone.name)}
+                        </Table.Td>
+                        <Table.Td>
+                          {dnssecLabel && (
+                            <Badge
+                              color={zone.hasDnssecPrivateKeys ? 'blue' : 'gray'}
+                              variant="dot"
+                              size="sm"
+                              tt="none"
+                              style={dotBadgeStyle}
                             >
-                              {t('zones.records')}
-                            </Menu.Item>
-                            {!zone.internal && (
-                              <>
-                                <Menu.Divider />
-                                {zone.disabled ? (
-                                  <Menu.Item
-                                    leftSection={<IconCheck size={14} />}
-                                    onClick={() => handleEnableZone(zone.name)}
-                                  >
-                                    {t('zones.enable')}
-                                  </Menu.Item>
-                                ) : (
-                                  <Menu.Item
-                                    leftSection={<IconX size={14} />}
-                                    onClick={() => handleDisableZone(zone.name)}
-                                  >
-                                    {t('zones.disable')}
-                                  </Menu.Item>
-                                )}
-                              </>
-                            )}
-                            {canResync(zone.type) && (
-                              <Menu.Item onClick={() => handleResync(zone.name)}>
-                                {t('zones.resync')}
-                              </Menu.Item>
-                            )}
-                            {canImport(zone.type) && (
+                              {dnssecLabel}
+                            </Badge>
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          <Badge
+                            color={ZONE_STATUS_COLORS[status] || 'green'}
+                            variant="dot"
+                            size="sm"
+                            tt="none"
+                            style={dotBadgeStyle}
+                          >
+                            {t(`zones.status.${status}`)}
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">{zone.soaSerial ?? '-'}</Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">
+                            {zone.expiry ? new Date(zone.expiry).toLocaleString() : '-'}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">
+                            {zone.lastModified ? new Date(zone.lastModified).toLocaleString() : '-'}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Menu position="bottom-end" shadow="sm">
+                            <Menu.Target>
+                              <ActionIcon variant="subtle" color="gray">
+                                <IconDotsVertical size={16} />
+                              </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
                               <Menu.Item
-                                onClick={() => {
-                                  setActionZone(zone);
-                                  setImportModalOpen(true);
-                                }}
+                                leftSection={<IconEdit size={14} />}
+                                onClick={() => onSelectZone(zone.name)}
                               >
-                                {t('common.import')}
+                                {t('zones.records')}
                               </Menu.Item>
-                            )}
-                            {canExport(zone.type) && (
-                              <Menu.Item onClick={() => handleExportZone(zone.name)}>
-                                {t('common.export')}
-                              </Menu.Item>
-                            )}
-                            {canConvert(zone.type) && (
-                              <Menu.Item
-                                onClick={() => {
-                                  setActionZone(zone);
-                                  setConvertModalOpen(true);
-                                }}
-                              >
-                                {t('zones.convertZone')}
-                              </Menu.Item>
-                            )}
-                            {canClone(zone.type) && (
-                              <Menu.Item
-                                onClick={() => {
-                                  setActionZone(zone);
-                                  setCloneModalOpen(true);
-                                }}
-                              >
-                                {t('zones.cloneZone')}
-                              </Menu.Item>
-                            )}
-                            {!zone.internal && (
-                              <Menu.Item
-                                onClick={() => {
-                                  setActionZone(zone);
-                                  setPermsModalOpen(true);
-                                }}
-                              >
-                                {t('zones.permissions')}
-                              </Menu.Item>
-                            )}
-                            {canShowOptions(zone.type) && (
-                              <Menu.Item
-                                onClick={() => {
-                                  setActionZone(zone);
-                                  setOptionsModalOpen(true);
-                                }}
-                              >
-                                {t('zones.zoneOptions')}
-                              </Menu.Item>
-                            )}
-                            {!zone.internal && (
-                              <>
-                                <Menu.Divider />
+                              {!zone.internal && (
+                                <>
+                                  <Menu.Divider />
+                                  {zone.disabled ? (
+                                    <Menu.Item
+                                      leftSection={<IconCheck size={14} />}
+                                      onClick={() => handleEnableZone(zone.name)}
+                                    >
+                                      {t('zones.enable')}
+                                    </Menu.Item>
+                                  ) : (
+                                    <Menu.Item
+                                      leftSection={<IconX size={14} />}
+                                      onClick={() => handleDisableZone(zone.name)}
+                                    >
+                                      {t('zones.disable')}
+                                    </Menu.Item>
+                                  )}
+                                </>
+                              )}
+                              {canResync(zone.type) && (
+                                <Menu.Item onClick={() => handleResync(zone.name)}>
+                                  {t('zones.resync')}
+                                </Menu.Item>
+                              )}
+                              {canImport(zone.type) && (
                                 <Menu.Item
-                                  leftSection={<IconTrash size={14} />}
-                                  color="red"
                                   onClick={() => {
-                                    setZoneToDelete(zone.name);
-                                    setDeleteModalOpen(true);
+                                    setActionZone(zone);
+                                    setImportModalOpen(true);
                                   }}
                                 >
-                                  {t('common.delete')}
+                                  {t('common.import')}
                                 </Menu.Item>
-                              </>
-                            )}
-                          </Menu.Dropdown>
-                        </Menu>
-                      </Table.Td>
-                    </Table.Tr>
-                  );
-                })}
-              </Table.Tbody>
-            </Table>
+                              )}
+                              {canExport(zone.type) && (
+                                <Menu.Item onClick={() => handleExportZone(zone.name)}>
+                                  {t('common.export')}
+                                </Menu.Item>
+                              )}
+                              {canConvert(zone.type) && (
+                                <Menu.Item
+                                  onClick={() => {
+                                    setActionZone(zone);
+                                    setConvertModalOpen(true);
+                                  }}
+                                >
+                                  {t('zones.convertZone')}
+                                </Menu.Item>
+                              )}
+                              {canClone(zone.type) && (
+                                <Menu.Item
+                                  onClick={() => {
+                                    setActionZone(zone);
+                                    setCloneModalOpen(true);
+                                  }}
+                                >
+                                  {t('zones.cloneZone')}
+                                </Menu.Item>
+                              )}
+                              {!zone.internal && (
+                                <Menu.Item
+                                  onClick={() => {
+                                    setActionZone(zone);
+                                    setPermsModalOpen(true);
+                                  }}
+                                >
+                                  {t('zones.permissions')}
+                                </Menu.Item>
+                              )}
+                              {canShowOptions(zone.type) && (
+                                <Menu.Item
+                                  onClick={() => {
+                                    setActionZone(zone);
+                                    setOptionsModalOpen(true);
+                                  }}
+                                >
+                                  {t('zones.zoneOptions')}
+                                </Menu.Item>
+                              )}
+                              {!zone.internal && (
+                                <>
+                                  <Menu.Divider />
+                                  <Menu.Item
+                                    leftSection={<IconTrash size={14} />}
+                                    color="red"
+                                    onClick={() => {
+                                      setZoneToDelete(zone.name);
+                                      setDeleteModalOpen(true);
+                                    }}
+                                  >
+                                    {t('common.delete')}
+                                  </Menu.Item>
+                                </>
+                              )}
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Table.Td>
+                      </Table.Tr>
+                    );
+                  })}
+                </Table.Tbody>
+              </Table>
 
-            {data && (
-              <Group justify="space-between" mt="md">
-                <Text size="sm" c="dimmed">
-                  {data.totalZones > 0
-                    ? t('zones.pagination.summary', {
-                        start: (page - 1) * pageSize + 1,
-                        end: Math.min(page * pageSize, data.totalZones),
-                        total: data.totalZones,
-                        page,
-                        pages: data.totalPages,
-                      })
-                    : t('zones.pagination.empty')}
-                </Text>
-                <Pagination
-                  value={page}
-                  onChange={onPageChange}
-                  total={data.totalPages}
-                  size="sm"
-                />
-              </Group>
-            )}
-          </>
-        )}
+              {data && (
+                <Group justify="space-between" mt="md">
+                  <Text size="sm" c="dimmed">
+                    {data.totalZones > 0
+                      ? t('zones.pagination.summary', {
+                          start: (page - 1) * pageSize + 1,
+                          end: Math.min(page * pageSize, data.totalZones),
+                          total: data.totalZones,
+                          page,
+                          pages: data.totalPages,
+                        })
+                      : t('zones.pagination.empty')}
+                  </Text>
+                  <Pagination
+                    value={page}
+                    onChange={onPageChange}
+                    total={data.totalPages}
+                    size="sm"
+                  />
+                </Group>
+              )}
+            </>
+          )}
+        </Table.ScrollContainer>
       </Paper>
 
       <AddZoneModal

@@ -57,10 +57,8 @@ export function WebServiceTab({
           />
         </Group>
         <div
+          className="form-grid form-grid--3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--mantine-spacing-md)',
             marginTop: 'var(--mantine-spacing-sm)',
           }}
         >

@@ -3,6 +3,7 @@ import { Button, Group, Modal, Paper, Stack, Table, Tabs, Text, TextInput } from
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
+import { PageHeader } from '../../../components/PageHeader';
 import type { ClusterNode } from '../types';
 
 export function ClusterTab() {
@@ -104,51 +105,60 @@ export function ClusterTab() {
   };
 
   return (
-    <Stack mt="md">
-      <Group justify="flex-end">
-        {!clusterInitialized ? (
-          <Button onClick={() => setShowInitModal(true)}>{t('admin.initialize')}</Button>
-        ) : (
-          <>
-            <Button onClick={resyncCluster}>{t('admin.resync')}</Button>
-            <Button color="yellow" onClick={leaveCluster}>
-              {t('admin.leaveCluster')}
+    <Stack>
+      <PageHeader
+        title={t('nav.admin')}
+        actions={
+          !clusterInitialized ? (
+            <Button size="xs" onClick={() => setShowInitModal(true)}>
+              {t('admin.initialize')}
             </Button>
-            <Button color="red" onClick={deleteCluster}>
-              {t('admin.deleteCluster')}
-            </Button>
-          </>
-        )}
-      </Group>
+          ) : (
+            <>
+              <Button size="xs" onClick={resyncCluster}>
+                {t('admin.resync')}
+              </Button>
+              <Button size="xs" color="yellow" onClick={leaveCluster}>
+                {t('admin.leaveCluster')}
+              </Button>
+              <Button size="xs" color="red" onClick={deleteCluster}>
+                {t('admin.deleteCluster')}
+              </Button>
+            </>
+          )
+        }
+      />
       <Paper shadow="sm" p="md" withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('admin.nodeName')}</Table.Th>
-              <Table.Th>{t('admin.ipAddress')}</Table.Th>
-              <Table.Th>{t('admin.url')}</Table.Th>
-              <Table.Th>{t('admin.type')}</Table.Th>
-              <Table.Th>{t('admin.state')}</Table.Th>
-              <Table.Th>{t('admin.upSince')}</Table.Th>
-              <Table.Th>{t('admin.lastSeen')}</Table.Th>
-              <Table.Th>{t('admin.lastSynced')}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {nodes.map((node, i) => (
-              <Table.Tr key={i}>
-                <Table.Td>{node.name}</Table.Td>
-                <Table.Td>{node.ipAddress}</Table.Td>
-                <Table.Td>{node.url}</Table.Td>
-                <Table.Td>{node.type}</Table.Td>
-                <Table.Td>{node.state}</Table.Td>
-                <Table.Td>{new Date(node.upSince).toLocaleString()}</Table.Td>
-                <Table.Td>{new Date(node.lastSeen).toLocaleString()}</Table.Td>
-                <Table.Td>{new Date(node.lastSynced).toLocaleString()}</Table.Td>
+        <Table.ScrollContainer minWidth={760}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{t('admin.nodeName')}</Table.Th>
+                <Table.Th>{t('admin.ipAddress')}</Table.Th>
+                <Table.Th>{t('admin.url')}</Table.Th>
+                <Table.Th>{t('admin.type')}</Table.Th>
+                <Table.Th>{t('admin.state')}</Table.Th>
+                <Table.Th>{t('admin.upSince')}</Table.Th>
+                <Table.Th>{t('admin.lastSeen')}</Table.Th>
+                <Table.Th>{t('admin.lastSynced')}</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {nodes.map((node, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td>{node.name}</Table.Td>
+                  <Table.Td>{node.ipAddress}</Table.Td>
+                  <Table.Td>{node.url}</Table.Td>
+                  <Table.Td>{node.type}</Table.Td>
+                  <Table.Td>{node.state}</Table.Td>
+                  <Table.Td>{new Date(node.upSince).toLocaleString()}</Table.Td>
+                  <Table.Td>{new Date(node.lastSeen).toLocaleString()}</Table.Td>
+                  <Table.Td>{new Date(node.lastSynced).toLocaleString()}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
         {nodes.length === 0 && (
           <Text c="dimmed" size="sm" mt="sm">
             {t('admin.noClusterNodes')}

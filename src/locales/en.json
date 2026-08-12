@@ -711,7 +711,9 @@
       "nextHashedOwnerName": "Next Hashed Owner Name",
       "hashAlgorithm": "Hash Algorithm",
       "types": "Types"
-    }
+    },
+    "dnsServer": "DNS Server",
+    "responseMetadataTitle": "Response Metadata"
   },
   "admin": {
     "sessionDeleteConfirm": "Are you sure you want to delete the session [{{token}}]?",

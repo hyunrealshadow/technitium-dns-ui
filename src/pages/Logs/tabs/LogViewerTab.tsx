@@ -185,6 +185,8 @@ export function LogViewerTab() {
                 <Text c="dimmed">{t('common.loading')}</Text>
               ) : content !== null ? (
                 <CodeMirror
+                  // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
+                  key={isDark ? 'dark' : 'light'}
                   value={content}
                   readOnly
                   height="600px"
