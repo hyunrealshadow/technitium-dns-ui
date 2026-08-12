@@ -362,12 +362,13 @@ function prettifyFieldKey(key: string): string {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
 }
 
-// 时间值本地化显示；无效时间或 .NET DateTime.MinValue（0001-01-01）返回 undefined
+// 时间值按 YYYY-MM-DD HH:MM:SS（本地时间）显示；无效时间或 .NET DateTime.MinValue（0001-01-01）返回 undefined
 function formatTimestamp(value: unknown): string | undefined {
   const d = new Date(String(value));
   if (isNaN(d.getTime())) return undefined;
   if (d.getFullYear() < 1000) return undefined;
-  return d.toLocaleString();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 // 把 rData（含顶层附加字段）平铺为键值对列表；嵌套对象递归展开，数组逐行展示。
