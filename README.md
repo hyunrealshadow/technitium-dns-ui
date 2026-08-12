@@ -102,3 +102,7 @@ src/
 ## Backend integration
 
 During development, Vite proxies `/api` and `/json` to the DNS server configured in `vite.config.ts`. Authentication uses the token returned by the Technitium DNS Server API. Production assets are intended to be served together with the DNS server web application.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](./LICENSE) (`GPL-3.0-only`).

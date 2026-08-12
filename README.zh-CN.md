@@ -102,3 +102,7 @@ src/
 ## 后端集成
 
 开发环境下，Vite 会将 `/api` 和 `/json` 请求代理到 `vite.config.ts` 中配置的 DNS 服务器。登录鉴权使用 Technitium DNS Server API 返回的令牌。生产环境构建产物适合与 DNS 服务器 Web 应用一同部署。
+
+## 开源协议
+
+本项目采用 [GNU General Public License v3.0](./LICENSE)（`GPL-3.0-only`）开源协议。
