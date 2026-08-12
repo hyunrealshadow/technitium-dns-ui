@@ -29,9 +29,9 @@ export function PermissionsModal({
     setLoading(true);
     const load = async () => {
       try {
-        const token = apiClient.getToken();
         const response = await fetch(
-          `/api/zones/permissions/get?token=${encodeURIComponent(token || '')}&zone=${encodeURIComponent(zone)}&includeUsersAndGroups=true`
+          `/api/zones/permissions/get?zone=${encodeURIComponent(zone)}&includeUsersAndGroups=true`,
+          { headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` } }
         );
         const data = await response.json();
         if (data.status === 'ok' && data.response) {

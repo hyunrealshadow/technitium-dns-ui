@@ -168,9 +168,13 @@ export function buildParams(
       break;
     case 'TXT':
       if (isEdit) {
-        params.text = orig.text;
+        if (Array.isArray(orig.characterStringsBase64)) {
+          params.characterStringsBase64 = orig.characterStringsBase64.join(',');
+        } else {
+          params.text = orig.text;
+          if (orig.splitText) params.splitText = orig.splitText;
+        }
         params.newText = state.text;
-        if (orig.splitText) params.splitText = orig.splitText;
         if (state.splitText) params.newSplitText = true;
       } else {
         params.text = state.text;

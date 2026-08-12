@@ -36,6 +36,18 @@ export interface LoginResponse {
   innerErrorMessage?: string;
 }
 
+export interface ServerStatusResponse {
+  status: 'ok' | 'error';
+  hasDefaultCredentials: boolean;
+  ssoEnabled: boolean;
+  server?: string;
+  errorMessage?: string;
+}
+
+export interface SessionInfoResponse extends LoginResponse {
+  isSsoUser: boolean;
+}
+
 export class ApiClient {
   private baseUrl = '/api';
   private token: string | null;
@@ -95,12 +107,13 @@ export class ApiClient {
       return new ApiError('Not logged in');
     }
 
-    const url = `${this.baseUrl}${endpoint}${endpoint.includes('?') ? '&' : '?'}token=${token}`;
+    const url = `${this.baseUrl}${endpoint}`;
 
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${token}`,
         ...options.headers,
       },
     });
@@ -162,6 +175,26 @@ export class ApiClient {
     });
 
     return await response.json();
+  }
+
+  async getServerStatus(): Promise<ServerStatusResponse> {
+    const response = await fetch(`${this.baseUrl}/status`);
+    return await response.json();
+  }
+
+  async getSessionInfo(token: string): Promise<SessionInfoResponse> {
+    const response = await fetch(`${this.baseUrl}/user/session/get`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return await response.json();
+  }
+
+  async createSingleUseToken(): Promise<string> {
+    const response = await this.post<{ token: string }>('/user/createSingleUseToken', {});
+    if (response.status !== 'ok' || !response.response?.token) {
+      throw new Error(response.errorMessage || 'Failed to create a single-use token');
+    }
+    return response.response.token;
   }
 }
 

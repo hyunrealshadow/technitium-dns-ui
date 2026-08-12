@@ -78,6 +78,7 @@ const mainNavItems: NavItem[] = [
       { labelKey: 'admin.users', to: '/admin/users' },
       { labelKey: 'admin.groups', to: '/admin/groups' },
       { labelKey: 'admin.permissions', to: '/admin/permissions' },
+      { labelKey: 'admin.sso', to: '/admin/sso' },
       { labelKey: 'admin.cluster', to: '/admin/cluster' },
     ],
   },

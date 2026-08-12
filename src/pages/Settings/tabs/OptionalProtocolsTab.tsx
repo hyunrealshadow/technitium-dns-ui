@@ -90,12 +90,55 @@ export function OptionalProtocolsTab({
           disabled={!s.enableDnsOverHttps}
           description={t('settings.enableDoh3Help')}
         />
+        <Checkbox
+          mt="sm"
+          label={t('settings.enableDohHelpRedirect')}
+          description={t('settings.enableDohHelpRedirectHelp')}
+          checked={s.enableDnsOverHttpHelpRedirect}
+          onChange={e => set({ enableDnsOverHttpHelpRedirect: e.currentTarget.checked })}
+        />
+        <div className="form-grid form-grid--2" style={{ marginTop: 'var(--mantine-spacing-md)' }}>
+          <Stack gap="xs">
+            <Checkbox
+              label={t('settings.enableDohHttpUnixSocket')}
+              checked={s.enableDnsOverHttpUnixSocket}
+              onChange={e => set({ enableDnsOverHttpUnixSocket: e.currentTarget.checked })}
+            />
+            <TextInput
+              label={t('settings.dohHttpUnixSocket')}
+              description={t('settings.unixSocketHelp')}
+              value={s.dnsOverHttpUnixSocket || ''}
+              onChange={e => set({ dnsOverHttpUnixSocket: e.target.value })}
+              disabled={!s.enableDnsOverHttpUnixSocket}
+            />
+          </Stack>
+          <Stack gap="xs">
+            <Checkbox
+              label={t('settings.enableDohHttpsUnixSocket')}
+              checked={s.enableDnsOverHttpsUnixSocket}
+              onChange={e => set({ enableDnsOverHttpsUnixSocket: e.currentTarget.checked })}
+            />
+            <TextInput
+              label={t('settings.dohHttpsUnixSocket')}
+              description={t('settings.unixSocketHelp')}
+              value={s.dnsOverHttpsUnixSocket || ''}
+              onChange={e => set({ dnsOverHttpsUnixSocket: e.target.value })}
+              disabled={!s.enableDnsOverHttpsUnixSocket}
+            />
+          </Stack>
+        </div>
       </Paper>
       <Paper shadow="sm" p="md" withBorder>
         <Text fw={600} mb="sm">
           {t('settings.tlsCertificateHeading')}
         </Text>
         <div className="form-grid form-grid--2">
+          <Checkbox
+            label={t('settings.enableEcsSourceAddress')}
+            description={t('settings.enableEcsSourceAddressHelp')}
+            checked={s.enableEDnsClientSubnetSourceAddress}
+            onChange={e => set({ enableEDnsClientSubnetSourceAddress: e.currentTarget.checked })}
+          />
           <TextInput
             styles={{
               root: { display: 'flex', flexDirection: 'column' },
@@ -139,8 +182,8 @@ export function OptionalProtocolsTab({
             }}
             label={t('settings.reverseProxyNetworkAcl')}
             description={t('settings.reverseProxyNetworkAclHelp')}
-            value={toList(s.reverseProxyNetworkACL)}
-            onChange={e => set({ reverseProxyNetworkACL: toArray(e.target.value).split(',') })}
+            value={toList(s.dnsReverseProxyNetworkACL)}
+            onChange={e => set({ dnsReverseProxyNetworkACL: toArray(e.target.value).split(',') })}
           />
           <TextInput
             styles={{

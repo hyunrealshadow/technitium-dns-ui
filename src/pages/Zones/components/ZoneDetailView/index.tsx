@@ -155,14 +155,16 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
     }
   };
 
-  const handleExportZone = () => {
-    const token = apiClient.getToken();
-    if (token) {
+  const handleExportZone = async () => {
+    try {
+      const token = await apiClient.createSingleUseToken();
       window.open(
         `/api/zones/export?token=${encodeURIComponent(token)}&zone=${encodeURIComponent(zone)}`,
         '_blank'
       );
       success(t('common.success'), t('zones.zoneExported'));
+    } catch {
+      error(t('common.error'), t('zones.zoneExportFailed'));
     }
   };
 

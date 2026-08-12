@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Center,
+  Checkbox,
   Group,
   Menu,
   Modal,
@@ -32,6 +33,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
+import { useDebouncedValue } from '@mantine/hooks';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
 import { PageHeader } from '../../components/PageHeader';
@@ -74,10 +76,16 @@ const ZONE_STATUS_COLORS: Record<string, string> = {
   'Notify Failed': 'yellow',
 };
 
-async function fetchZones(page: number, pageSize: number): Promise<ZonesListResponse> {
-  const response = await apiClient.get<ZonesListResponse>(
-    `/zones/list?pageNumber=${page}&zonesPerPage=${pageSize}`
-  );
+async function fetchZones(
+  page: number,
+  pageSize: number,
+  filterName: string,
+  filterType: string
+): Promise<ZonesListResponse> {
+  const params = new URLSearchParams({ pageNumber: String(page), zonesPerPage: String(pageSize) });
+  if (filterName.trim()) params.set('filterName', filterName.trim());
+  if (filterType !== 'all') params.set('filterType', filterType);
+  const response = await apiClient.get<ZonesListResponse>(`/zones/list?${params}`);
   if (response.status !== 'ok' || !response.response) {
     throw new Error(response.errorMessage || i18n.t('zones.loadFailed'));
   }
@@ -106,6 +114,7 @@ export function ZonesPage() {
   const queryClient = useQueryClient();
 
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText] = useDebouncedValue(searchText, 300);
 
   const page = search.page;
   const pageSize = search.pageSize;
@@ -115,8 +124,8 @@ export function ZonesPage() {
   const [showSkeleton, setShowSkeleton] = useState(false);
 
   const { data, isFetching, isError, refetch } = useQuery({
-    queryKey: ['zones', page, pageSize],
-    queryFn: () => fetchZones(page, pageSize),
+    queryKey: ['zones', page, pageSize, debouncedSearchText, filterType],
+    queryFn: () => fetchZones(page, pageSize, debouncedSearchText, filterType),
     staleTime: 30_000,
   });
 
@@ -159,6 +168,16 @@ export function ZonesPage() {
     });
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchText(value);
+    if (page !== 1) {
+      navigate({
+        to: '/zones',
+        search: { page: 1, pageSize, filterType: filterType === 'all' ? undefined : filterType },
+      });
+    }
+  };
+
   const handleSelectZone = (zone: string) => {
     navigate({
       to: '/zones',
@@ -188,13 +207,7 @@ export function ZonesPage() {
   }
 
   // List view
-  const filteredZones = (data?.zones || []).filter(zone => {
-    const matchesSearch =
-      zone.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      (zone.nameIdn && zone.nameIdn.toLowerCase().includes(searchText.toLowerCase()));
-    const matchesType = filterType === 'all' || zone.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const filteredZones = data?.zones || [];
 
   const zoneTypeOptions = [
     { value: 'all', label: t('common.all') },
@@ -204,7 +217,7 @@ export function ZonesPage() {
     { value: 'Forwarder', label: t('zones.types.Forwarder') },
     { value: 'SecondaryForwarder', label: t('zones.types.SecondaryForwarder') },
     { value: 'SecondaryCatalog', label: t('zones.types.SecondaryCatalog') },
-    { value: 'ForwarderCatalog', label: t('zones.types.ForwarderCatalog') },
+    { value: 'Catalog', label: t('zones.types.Catalog') },
   ];
 
   const handleRefreshWithCallback = async () => {
@@ -213,6 +226,7 @@ export function ZonesPage() {
 
   return (
     <ZoneListView
+      key={`${page}:${pageSize}:${debouncedSearchText}:${filterType}`}
       t={t}
       data={data}
       isFetching={isFetching}
@@ -220,7 +234,7 @@ export function ZonesPage() {
       showSkeleton={showSkeleton}
       filteredZones={filteredZones}
       searchText={searchText}
-      onSearchChange={setSearchText}
+      onSearchChange={handleSearchChange}
       filterType={filterType}
       onFilterTypeChange={handleFilterTypeChange}
       page={page}
@@ -285,6 +299,8 @@ function ZoneListView({
   const [addZoneModalOpen, setAddZoneModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [zoneToDelete, setZoneToDelete] = useState<string | null>(null);
+  const [selectedZones, setSelectedZones] = useState<string[]>([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
   const [actionZone, setActionZone] = useState<ZoneInfo | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -325,6 +341,23 @@ function ZoneListView({
     setZoneToDelete(null);
   };
 
+  const handleDeleteSelectedZones = async () => {
+    try {
+      await apiClient.post('/zones/delete', { zones: selectedZones.join(',') });
+      success(t('common.success'), t('zones.selectedDeleted', { count: selectedZones.length }));
+      setSelectedZones([]);
+      setBulkDeleteModalOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['zones'] });
+    } catch {
+      error(t('common.error'), t('zones.deleteFailed'));
+    }
+  };
+
+  const selectableZones = filteredZones.filter(zone => !zone.internal).map(zone => zone.name);
+  const allSelected =
+    selectableZones.length > 0 && selectableZones.every(zone => selectedZones.includes(zone));
+  const someSelected = selectableZones.some(zone => selectedZones.includes(zone));
+
   const handleAddZoneSuccess = async () => {
     setAddZoneModalOpen(false);
     await queryClient.invalidateQueries({ queryKey: ['zones'] });
@@ -339,14 +372,16 @@ function ZoneListView({
     }
   };
 
-  const handleExportZone = (zoneName: string) => {
-    const token = apiClient.getToken();
-    if (token) {
+  const handleExportZone = async (zoneName: string) => {
+    try {
+      const token = await apiClient.createSingleUseToken();
       window.open(
         `/api/zones/export?token=${encodeURIComponent(token)}&zone=${encodeURIComponent(zoneName)}`,
         '_blank'
       );
       success(t('common.success'), t('zones.zoneExported'));
+    } catch {
+      error(t('common.error'), t('zones.zoneExportFailed'));
     }
   };
 
@@ -404,6 +439,16 @@ function ZoneListView({
             </Button>
             <Button
               size="xs"
+              color="red"
+              variant="light"
+              leftSection={<IconTrash size={15} />}
+              disabled={selectedZones.length === 0}
+              onClick={() => setBulkDeleteModalOpen(true)}
+            >
+              {t('zones.deleteSelected', { count: selectedZones.length })}
+            </Button>
+            <Button
+              size="xs"
               leftSection={<IconRefresh size={15} />}
               onClick={onRefresh}
               loading={isFetching}
@@ -448,6 +493,7 @@ function ZoneListView({
               <Table>
                 <Table.Thead>
                   <Table.Tr>
+                    <Table.Th style={{ width: 42 }}></Table.Th>
                     <Table.Th style={{ width: 50 }}>#</Table.Th>
                     <Table.Th>{t('zones.name')}</Table.Th>
                     <Table.Th>{t('zones.type')}</Table.Th>
@@ -462,7 +508,7 @@ function ZoneListView({
                 <Table.Tbody>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Table.Tr key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <Table.Td key={j}>
                           <Skeleton height={20} />
                         </Table.Td>
@@ -488,6 +534,16 @@ function ZoneListView({
               <Table striped highlightOnHover>
                 <Table.Thead>
                   <Table.Tr>
+                    <Table.Th style={{ width: 42 }}>
+                      <Checkbox
+                        aria-label={t('zones.selectAll')}
+                        checked={allSelected}
+                        indeterminate={!allSelected && someSelected}
+                        onChange={e =>
+                          setSelectedZones(e.currentTarget.checked ? selectableZones : [])
+                        }
+                      />
+                    </Table.Th>
                     <Table.Th style={{ width: 50 }}>#</Table.Th>
                     <Table.Th>{t('zones.name')}</Table.Th>
                     <Table.Th>{t('zones.type')}</Table.Th>
@@ -505,6 +561,21 @@ function ZoneListView({
                     const dnssecLabel = getDnssecLabel(zone);
                     return (
                       <Table.Tr key={zone.name}>
+                        <Table.Td>
+                          {!zone.internal && (
+                            <Checkbox
+                              aria-label={t('zones.selectZone', { zone: zone.name || '<root>' })}
+                              checked={selectedZones.includes(zone.name)}
+                              onChange={e =>
+                                setSelectedZones(current =>
+                                  e.currentTarget.checked
+                                    ? [...current, zone.name]
+                                    : current.filter(item => item !== zone.name)
+                                )
+                              }
+                            />
+                          )}
+                        </Table.Td>
                         <Table.Td>
                           <Text size="sm" c="dimmed">
                             {(page - 1) * pageSize + idx + 1}
@@ -795,6 +866,26 @@ function ZoneListView({
             {t('common.cancel')}
           </Button>
           <Button color="red" onClick={() => zoneToDelete && handleDeleteZone(zoneToDelete)}>
+            {t('common.delete')}
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal
+        opened={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        title={t('common.confirm')}
+        centered
+      >
+        <Text mb="xs">{t('zones.deleteSelectedConfirm', { count: selectedZones.length })}</Text>
+        <Text size="sm" c="dimmed" mb="lg" style={{ whiteSpace: 'pre-wrap' }}>
+          {selectedZones.join('\n')}
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="subtle" onClick={() => setBulkDeleteModalOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button color="red" onClick={handleDeleteSelectedZones}>
             {t('common.delete')}
           </Button>
         </Group>

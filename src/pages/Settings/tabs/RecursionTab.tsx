@@ -69,6 +69,12 @@ export function RecursionTab({ s, set }: { s: Settings; set: (patch: Partial<Set
             checked={s.qnameMinimization}
             onChange={e => set({ qnameMinimization: e.currentTarget.checked })}
           />
+          <Checkbox
+            label={t('settings.locallyServedDnsZones')}
+            description={t('settings.locallyServedDnsZonesHelp')}
+            checked={s.locallyServedDnsZones}
+            onChange={e => set({ locallyServedDnsZones: e.currentTarget.checked })}
+          />
         </Group>
         <Text size="xs" c="dimmed" mt="sm">
           {t('settings.randomizeNameWarning')}

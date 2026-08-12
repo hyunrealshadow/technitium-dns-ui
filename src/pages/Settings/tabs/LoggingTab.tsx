@@ -53,6 +53,13 @@ export function LoggingTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             disabled={!enabled}
           />
           <Checkbox
+            label={t('settings.noStackTrace')}
+            description={t('settings.noStackTraceHelp')}
+            checked={s.noStackTrace}
+            onChange={e => set({ noStackTrace: e.currentTarget.checked })}
+            disabled={!enabled}
+          />
+          <Checkbox
             label={t('settings.useLocalTime')}
             description={t('settings.useLocalTimeHelp')}
             checked={s.useLocalTime}

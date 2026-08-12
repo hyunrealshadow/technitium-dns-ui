@@ -121,9 +121,9 @@ export function ZoneOptionsModal({
     const load = async () => {
       setTab('general');
       try {
-        const token = apiClient.getToken();
         const response = await fetch(
-          `/api/zones/options/get?token=${encodeURIComponent(token || '')}&zone=${encodeURIComponent(zone)}&includeAvailableCatalogZoneNames=true&includeAvailableTsigKeyNames=true`
+          `/api/zones/options/get?zone=${encodeURIComponent(zone)}&includeAvailableCatalogZoneNames=true&includeAvailableTsigKeyNames=true`,
+          { headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` } }
         );
         const data = await response.json();
         if (data.status === 'ok' && data.response) {

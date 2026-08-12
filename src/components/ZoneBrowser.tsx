@@ -666,11 +666,13 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
     }
   };
 
-  const handleExport = () => {
-    const token = apiClient.getToken();
-    if (token) {
+  const handleExport = async () => {
+    try {
+      const token = await apiClient.createSingleUseToken();
       window.open(`/api/${apiBase}/export?token=${encodeURIComponent(token)}`, '_blank');
       success(t('common.success'), t('zoneTree.exported'));
+    } catch {
+      error(t('common.error'), t('zoneTree.exportFailed'));
     }
   };
 

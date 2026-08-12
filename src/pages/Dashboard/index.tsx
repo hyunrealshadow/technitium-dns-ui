@@ -10,8 +10,9 @@ import {
   Stack,
   Text,
   Skeleton,
+  Menu,
 } from '@mantine/core';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconClockPause, IconRefresh, IconShieldCheck, IconShieldOff } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/client';
 import { error, success } from '../../components/notifications';
@@ -84,6 +85,18 @@ export function DashboardPage() {
   const queryTypeData = dashboardData?.queryTypeChartData || null;
   const protocolData = dashboardData?.protocolTypeChartData || null;
 
+  const { data: blockingEnabled } = useQuery({
+    queryKey: ['settings', 'blocking-status'],
+    queryFn: async () => {
+      const response = await apiClient.get<{ enableBlocking: boolean }>('/settings/get');
+      if (response.status === 'ok' && response.response) {
+        return response.response.enableBlocking;
+      }
+      throw new Error(response.errorMessage || t('dashboard.blocking.loadFailed'));
+    },
+    staleTime: 60_000,
+  });
+
   const mainChartData = dashboardData?.mainChartData?.labels?.length
     ? dashboardData.mainChartData.labels.map((label, index) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,6 +137,53 @@ export function DashboardPage() {
       error(t('common.error'), t('dashboard.notification.domainAllowFailed'), domain);
     },
   });
+
+  const blockingMutation = useMutation({
+    mutationFn: async (action: { enabled?: boolean; minutes?: number }) => {
+      const response =
+        action.minutes === undefined
+          ? await apiClient.post('/settings/set', { enableBlocking: action.enabled })
+          : await apiClient.post(
+              `/settings/temporaryDisableBlocking?minutes=${action.minutes}`,
+              {}
+            );
+      if (response.status !== 'ok') {
+        throw new Error(response.errorMessage || t('dashboard.blocking.updateFailed'));
+      }
+      return action;
+    },
+    onSuccess: async action => {
+      if (action.enabled !== undefined) {
+        queryClient.setQueryData(['settings', 'blocking-status'], action.enabled);
+        success(
+          t('common.success'),
+          t(action.enabled ? 'dashboard.blocking.enabled' : 'dashboard.blocking.disabled')
+        );
+      } else if (action.minutes !== undefined) {
+        success(t('common.success'), t('settings.tempDisabled', { minutes: action.minutes }));
+      }
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onError: (mutationError: Error) => {
+      error(t('common.error'), mutationError.message || t('dashboard.blocking.updateFailed'));
+    },
+  });
+
+  const setBlocking = (enabled: boolean) => {
+    if (
+      !window.confirm(
+        t(enabled ? 'dashboard.blocking.enableConfirm' : 'dashboard.blocking.disableConfirm')
+      )
+    ) {
+      return;
+    }
+    blockingMutation.mutate({ enabled });
+  };
+
+  const temporarilyDisableBlocking = (minutes: number) => {
+    if (!window.confirm(t('settings.tempDisableConfirm', { minutes }))) return;
+    blockingMutation.mutate({ minutes });
+  };
 
   const toggleSeries = (name: string) => {
     setActiveSeries(prev => {
@@ -550,6 +610,61 @@ export function DashboardPage() {
                   onShowQueryLogs={handleShowQueryLogs}
                   onQueryDns={handleQueryDns}
                   onAllowDomain={handleAllowDomain}
+                  headerAction={
+                    <Menu position="bottom-end" shadow="md" width={220}>
+                      <Menu.Target>
+                        <Button
+                          size="compact-xs"
+                          variant="default"
+                          leftSection={
+                            blockingEnabled ? (
+                              <IconShieldCheck size={14} />
+                            ) : (
+                              <IconShieldOff size={14} />
+                            )
+                          }
+                          loading={blockingMutation.isPending}
+                          disabled={blockingEnabled === undefined}
+                        >
+                          {t('dashboard.blocking.title')}
+                        </Button>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        {blockingEnabled ? (
+                          <Menu.Item
+                            color="red"
+                            leftSection={<IconShieldOff size={14} />}
+                            onClick={() => setBlocking(false)}
+                          >
+                            {t('dashboard.blocking.disable')}
+                          </Menu.Item>
+                        ) : (
+                          <Menu.Item
+                            color="green"
+                            leftSection={<IconShieldCheck size={14} />}
+                            onClick={() => setBlocking(true)}
+                          >
+                            {t('dashboard.blocking.enable')}
+                          </Menu.Item>
+                        )}
+                        {blockingEnabled && (
+                          <>
+                            <Menu.Divider />
+                            <Menu.Label>{t('dashboard.blocking.temporary')}</Menu.Label>
+                            {[1, 2, 5, 10, 15, 30, 60, 180].map(minutes => (
+                              <Menu.Item
+                                key={minutes}
+                                leftSection={<IconClockPause size={14} />}
+                                onClick={() => temporarilyDisableBlocking(minutes)}
+                              >
+                                {t('dashboard.blocking.disableForMinutes', { minutes })}
+                              </Menu.Item>
+                            ))}
+                          </>
+                        )}
+                      </Menu.Dropdown>
+                    </Menu>
+                  }
                 />
               </Grid.Col>
             </Grid>

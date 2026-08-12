@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Divider,
   Paper,
   PasswordInput,
   Stack,
@@ -23,9 +24,48 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [show2FA, setShow2FA] = useState(false);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
   const setSession = useSetAtom(sessionAtom);
   const isAuthenticated = useAtomValue(isAuthenticatedAtom);
   const session = useAtomValue(sessionAtom);
+
+  useEffect(() => {
+    const cookieToken = document.cookie
+      .split(';')
+      .map(part => part.trim())
+      .find(part => part.startsWith('token='))
+      ?.slice('token='.length);
+
+    if (cookieToken) {
+      document.cookie = 'token=; Max-Age=0; path=/';
+      setLoading(true);
+      apiClient
+        .getSessionInfo(decodeURIComponent(cookieToken))
+        .then(response => {
+          if (response.status !== 'ok') {
+            setError(response.errorMessage || t('login.loginFailed'));
+            return;
+          }
+          const token = response.token;
+          const permissions = response.info?.permissions;
+          apiClient.setToken(token);
+          setSession({
+            username: response.username,
+            token,
+            displayName: response.displayName,
+            isSsoUser: response.isSsoUser,
+            permissions,
+          });
+        })
+        .catch(() => setError(t('login.loginError')))
+        .finally(() => setLoading(false));
+    }
+
+    apiClient
+      .getServerStatus()
+      .then(response => setSsoEnabled(response.status === 'ok' && response.ssoEnabled))
+      .catch(() => setSsoEnabled(false));
+  }, [setSession, t]);
 
   // 已登录时（含刚登录成功）跳转到第一个有查看权限的页面；
   // 用整页跳转确保 apiClient 能从 localStorage 恢复 token，避免组件内请求先于 token 初始化
@@ -63,6 +103,7 @@ export function LoginPage() {
           username: values.username,
           token,
           displayName: response.displayName,
+          isSsoUser: false,
           permissions,
         });
         // 跳转到第一个有查看权限的页面；无权限数据（旧会话兼容）时回退到仪表板
@@ -135,6 +176,20 @@ export function LoginPage() {
               <Button type="submit" fullWidth loading={loading} size="md" mt="xs">
                 {t('login.loginButton')}
               </Button>
+
+              {ssoEnabled && (
+                <>
+                  <Divider label={t('login.orContinueWith')} labelPosition="center" />
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="default"
+                    onClick={() => window.location.assign('/sso/login')}
+                  >
+                    {t('login.openIdConnect')}
+                  </Button>
+                </>
+              )}
             </Stack>
           </form>
         </Paper>

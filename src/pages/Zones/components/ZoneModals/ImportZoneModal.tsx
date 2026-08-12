@@ -19,6 +19,7 @@ export function ImportZoneModal({
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState('');
   const [overwrite, setOverwrite] = useState(true);
+  const [overwriteZone, setOverwriteZone] = useState(false);
   const [overwriteSoaSerial, setOverwriteSoaSerial] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,10 +41,13 @@ export function ImportZoneModal({
       }
 
       const response = await fetch(
-        `/api/zones/import?token=${encodeURIComponent(apiClient.getToken() || '')}&zone=${encodeURIComponent(zone)}&overwrite=${overwrite}&overwriteSoaSerial=${overwriteSoaSerial}`,
+        `/api/zones/import?zone=${encodeURIComponent(zone)}&overwrite=${overwrite}&overwriteZone=${overwriteZone}&overwriteSoaSerial=${overwriteSoaSerial}`,
         {
           method: 'POST',
-          headers: importType === 'text' ? { 'Content-Type': 'text/plain' } : undefined,
+          headers: {
+            Authorization: `Bearer ${apiClient.getToken() || ''}`,
+            ...(importType === 'text' ? { 'Content-Type': 'text/plain' } : {}),
+          },
           body: importType === 'text' ? text : formData,
         }
       );
@@ -102,6 +106,12 @@ export function ImportZoneModal({
           label={t('zones.overwriteRecords')}
           checked={overwrite}
           onChange={e => setOverwrite(e.currentTarget.checked)}
+        />
+        <Checkbox
+          label={t('zones.overwriteZone')}
+          description={t('zones.overwriteZoneHelp')}
+          checked={overwriteZone}
+          onChange={e => setOverwriteZone(e.currentTarget.checked)}
         />
         <Checkbox
           label={t('zones.overwriteSoaSerial')}

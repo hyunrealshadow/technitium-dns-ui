@@ -19,10 +19,9 @@ export function ViewDsModal({
     const load = async () => {
       setDsData(null);
       try {
-        const token = apiClient.getToken();
-        const response = await fetch(
-          `/api/zones/dnssec/viewDS?token=${encodeURIComponent(token || '')}&zone=${encodeURIComponent(zone)}`
-        );
+        const response = await fetch(`/api/zones/dnssec/viewDS?zone=${encodeURIComponent(zone)}`, {
+          headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
+        });
         const data = await response.json();
         if (data.status === 'ok') setDsData(data.response);
         else setDsData({});

@@ -200,8 +200,9 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
       }
 
       const response = importFile
-        ? await fetch(`/api${url}&token=${encodeURIComponent(apiClient.getToken() || '')}`, {
+        ? await fetch(`/api${url}`, {
             method: 'POST',
+            headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
             body: formData,
           }).then(r => r.json())
         : await apiClient.post(url, {});

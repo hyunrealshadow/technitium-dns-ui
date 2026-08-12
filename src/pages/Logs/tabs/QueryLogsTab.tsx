@@ -11,6 +11,7 @@ import {
   Paper,
   Select,
   Stack,
+  Switch,
   Table,
   Text,
   TextInput,
@@ -70,7 +71,9 @@ export function QueryLogsTab({
   const [loading, setLoading] = useState(false);
   const [queried, setQueried] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [liveUpdate, setLiveUpdate] = useState(false);
   const autoQueried = useRef(false);
+  const queryLogsRef = useRef<(pageNumber?: number) => Promise<void>>(async () => undefined);
   const [blockConfirm, setBlockConfirm] = useState<{
     qname: string;
     action: 'block' | 'allow';
@@ -175,9 +178,16 @@ export function QueryLogsTab({
     }
   };
 
-  const exportCsv = () => {
-    const token = apiClient.getToken();
-    if (!token) return;
+  queryLogsRef.current = queryLogs;
+
+  useEffect(() => {
+    if (!liveUpdate || !queried) return;
+    const timer = window.setInterval(() => queryLogsRef.current(1), 5000);
+    return () => window.clearInterval(timer);
+  }, [liveUpdate, queried]);
+
+  const exportCsv = async () => {
+    const token = await apiClient.createSingleUseToken();
     const url =
       `/api/logs/export?token=${encodeURIComponent(token)}&name=${encodeURIComponent(appName)}&classPath=${encodeURIComponent(classPath)}` +
       `&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&clientIpAddress=${encodeURIComponent(clientIp)}` +
@@ -253,6 +263,12 @@ export function QueryLogsTab({
             allowDeselect={false}
           />
           <Group gap="xs" ml="auto" align="end">
+            <Switch
+              label={t('logs.liveUpdate')}
+              checked={liveUpdate}
+              onChange={e => setLiveUpdate(e.currentTarget.checked)}
+              mb={7}
+            />
             <Button onClick={() => queryLogs(1)} loading={loading}>
               {t('logs.query')}
             </Button>

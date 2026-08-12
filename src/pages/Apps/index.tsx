@@ -82,10 +82,11 @@ export function AppsPage() {
       const formData = new FormData();
       formData.append('name', installName.trim());
       formData.append('fileApp', installFile);
-      const response = await fetch(
-        `/api/apps/install?token=${encodeURIComponent(apiClient.getToken() || '')}`,
-        { method: 'POST', body: formData }
-      ).then(r => r.json());
+      const response = await fetch('/api/apps/install', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
+        body: formData,
+      }).then(r => r.json());
       if (response.status === 'ok') {
         success(t('common.success'), t('apps.installedWithName', { name: installName.trim() }));
         setInstallOpen(false);
@@ -116,10 +117,11 @@ export function AppsPage() {
       const formData = new FormData();
       formData.append('name', updateTarget.name);
       formData.append('fileApp', updateFile);
-      const response = await fetch(
-        `/api/apps/update?token=${encodeURIComponent(apiClient.getToken() || '')}`,
-        { method: 'POST', body: formData }
-      ).then(r => r.json());
+      const response = await fetch('/api/apps/update', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
+        body: formData,
+      }).then(r => r.json());
       if (response.status === 'ok') {
         success(t('common.success'), t('apps.updatedWithName', { name: updateTarget.name }));
         setUpdateOpen(false);

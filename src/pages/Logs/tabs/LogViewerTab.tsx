@@ -46,7 +46,8 @@ export function LogViewerTab() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/logs/download?token=${encodeURIComponent(apiClient.getToken() || '')}&fileName=${encodeURIComponent(fileName)}&limit=2`
+        `/api/logs/download?fileName=${encodeURIComponent(fileName)}&limit=2`,
+        { headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` } }
       );
       let text = await response.text();
       try {
@@ -105,13 +106,15 @@ export function LogViewerTab() {
     }
   };
 
-  const downloadLog = (fileName: string) => {
-    const token = apiClient.getToken();
-    if (token) {
+  const downloadLog = async (fileName: string) => {
+    try {
+      const token = await apiClient.createSingleUseToken();
       window.open(
         `/api/logs/download?token=${encodeURIComponent(token)}&fileName=${encodeURIComponent(fileName)}&ts=${Date.now()}`,
         '_blank'
       );
+    } catch {
+      error(t('common.error'), t('logs.downloadFailed'));
     }
   };
 

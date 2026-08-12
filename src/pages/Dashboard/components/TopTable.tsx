@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ActionIcon,
   Badge,
@@ -23,6 +23,7 @@ interface TopTableProps {
   onAllowDomain?: (domain: string) => void;
   onShowQueryLogs?: (domain: string | null, clientIp: string | null) => void;
   onQueryDns?: (domain: string, type?: string) => void;
+  headerAction?: ReactNode;
 }
 
 export function TopTable({
@@ -33,6 +34,7 @@ export function TopTable({
   onAllowDomain,
   onShowQueryLogs,
   onQueryDns,
+  headerAction,
 }: TopTableProps) {
   const { t } = useTranslation();
   const [openedRow, setOpenedRow] = useState<number | null>(null);
@@ -103,9 +105,10 @@ export function TopTable({
 
   return (
     <Paper shadow="sm" p="md" withBorder h="100%">
-      <Title order={5} mb="md">
-        {title}
-      </Title>
+      <Group justify="space-between" align="center" mb="md" wrap="nowrap">
+        <Title order={5}>{title}</Title>
+        {headerAction}
+      </Group>
       <ScrollArea h={300}>
         <Table striped highlightOnHover>
           <Table.Thead>

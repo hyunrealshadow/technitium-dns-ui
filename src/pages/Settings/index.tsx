@@ -87,8 +87,9 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.zoneTransferAllowedNetworks =
         toArray(toList(settings.zoneTransferAllowedNetworks)) || 'false';
       params.notifyAllowedNetworks = toArray(toList(settings.notifyAllowedNetworks)) || 'false';
+      params.dnsServerEnableCheckForUpdate = settings.dnsServerEnableCheckForUpdate;
       params.dnsAppsEnableAutomaticUpdate = settings.dnsAppsEnableAutomaticUpdate;
-      params.preferIPv6 = settings.preferIPv6;
+      params.ipv6Mode = settings.ipv6Mode;
       params.enableUdpSocketPool = settings.enableUdpSocketPool;
       params.socketPoolExcludedPorts = toArray(toList(settings.socketPoolExcludedPorts)) || 'false';
       params.udpPayloadSize = settings.udpPayloadSize;
@@ -115,11 +116,17 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.quicIdleTimeout = settings.quicIdleTimeout;
       params.quicMaxInboundStreams = settings.quicMaxInboundStreams;
       params.listenBacklog = settings.listenBacklog;
+      params.udpSendBufferSizeKB = settings.udpSendBufferSizeKB;
+      params.udpReceiveBufferSizeKB = settings.udpReceiveBufferSizeKB;
       params.maxConcurrentResolutionsPerCore = settings.maxConcurrentResolutionsPerCore;
 
       params.webServiceLocalAddresses =
         toArray(toList(settings.webServiceLocalAddresses)) || '0.0.0.0,[::]';
       params.webServiceHttpPort = settings.webServiceHttpPort;
+      params.webServiceEnableHttpUnixSocket = settings.webServiceEnableHttpUnixSocket;
+      params.webServiceHttpUnixSocket = settings.webServiceHttpUnixSocket || '';
+      params.webServiceEnableTlsUnixSocket = settings.webServiceEnableTlsUnixSocket;
+      params.webServiceTlsUnixSocket = settings.webServiceTlsUnixSocket || '';
       params.webServiceEnableTls = settings.webServiceEnableTls;
       params.webServiceEnableHttp3 = settings.webServiceEnableHttp3;
       params.webServiceHttpToTlsRedirect = settings.webServiceHttpToTlsRedirect;
@@ -127,22 +134,32 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.webServiceTlsPort = settings.webServiceTlsPort;
       params.webServiceTlsCertificatePath = settings.webServiceTlsCertificatePath || '';
       params.webServiceTlsCertificatePassword = settings.webServiceTlsCertificatePassword || '';
+      params.webServiceReverseProxyAddresses =
+        toArray(toList(settings.webServiceReverseProxyAddresses)) || 'false';
       params.webServiceRealIpHeader = settings.webServiceRealIpHeader;
+      params.webServiceCspFrameAncestorsHeader = settings.webServiceCspFrameAncestorsHeader;
 
+      params.enableEDnsClientSubnetSourceAddress = settings.enableEDnsClientSubnetSourceAddress;
       params.enableDnsOverUdpProxy = settings.enableDnsOverUdpProxy;
       params.enableDnsOverTcpProxy = settings.enableDnsOverTcpProxy;
       params.enableDnsOverHttp = settings.enableDnsOverHttp;
+      params.enableDnsOverHttpUnixSocket = settings.enableDnsOverHttpUnixSocket;
+      params.enableDnsOverHttpsUnixSocket = settings.enableDnsOverHttpsUnixSocket;
       params.enableDnsOverTls = settings.enableDnsOverTls;
       params.enableDnsOverHttps = settings.enableDnsOverHttps;
       params.enableDnsOverHttp3 = settings.enableDnsOverHttp3;
       params.enableDnsOverQuic = settings.enableDnsOverQuic;
+      params.enableDnsOverHttpHelpRedirect = settings.enableDnsOverHttpHelpRedirect;
       params.dnsOverUdpProxyPort = settings.dnsOverUdpProxyPort;
       params.dnsOverTcpProxyPort = settings.dnsOverTcpProxyPort;
       params.dnsOverHttpPort = settings.dnsOverHttpPort;
+      params.dnsOverHttpUnixSocket = settings.dnsOverHttpUnixSocket || '';
+      params.dnsOverHttpsUnixSocket = settings.dnsOverHttpsUnixSocket || '';
       params.dnsOverTlsPort = settings.dnsOverTlsPort;
       params.dnsOverHttpsPort = settings.dnsOverHttpsPort;
       params.dnsOverQuicPort = settings.dnsOverQuicPort;
-      params.reverseProxyNetworkACL = toArray(toList(settings.reverseProxyNetworkACL)) || 'false';
+      params.dnsReverseProxyNetworkACL =
+        toArray(toList(settings.dnsReverseProxyNetworkACL)) || 'false';
       params.dnsTlsCertificatePath = settings.dnsTlsCertificatePath || '';
       params.dnsTlsCertificatePassword = settings.dnsTlsCertificatePassword || '';
       params.dnsOverHttpRealIpHeader = settings.dnsOverHttpRealIpHeader;
@@ -156,6 +173,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.recursionNetworkACL = toArray(toList(settings.recursionNetworkACL)) || 'false';
       params.randomizeName = settings.randomizeName;
       params.qnameMinimization = settings.qnameMinimization;
+      params.locallyServedDnsZones = settings.locallyServedDnsZones;
       params.resolverRetries = settings.resolverRetries;
       params.resolverTimeout = settings.resolverTimeout;
       params.resolverConcurrency = settings.resolverConcurrency;
@@ -206,6 +224,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.loggingType = settings.loggingType;
       params.ignoreResolverLogs = settings.ignoreResolverLogs;
       params.logQueries = settings.logQueries;
+      params.noStackTrace = settings.noStackTrace;
       params.useLocalTime = settings.useLocalTime;
       params.logFolder = settings.logFolder;
       params.maxLogFileDays = settings.maxLogFileDays;
@@ -303,14 +322,13 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
     { key: 'logs', label: t('settings.backupItems.logs') },
   ];
 
-  const doBackup = () => {
+  const doBackup = async () => {
     const selected = BACKUP_ITEMS.filter(i => backupItems[i.key]);
     if (selected.length === 0) {
       error(t('common.error'), t('settings.selectBackupItems'));
       return;
     }
-    const token = apiClient.getToken();
-    if (!token) return;
+    const token = await apiClient.createSingleUseToken();
     const query = selected.map(i => `${i.key}=true`).join('&');
     window.open(
       `/api/settings/backup?token=${encodeURIComponent(token)}&${query}&ts=${Date.now()}`,
@@ -335,8 +353,12 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       formData.append('fileBackupZip', restoreFile);
       const query = selected.map(i => `${i.key}=true`).join('&');
       const response = await fetch(
-        `/api/settings/restore?token=${encodeURIComponent(apiClient.getToken() || '')}&${query}&deleteExistingFiles=${deleteExistingFiles}`,
-        { method: 'POST', body: formData }
+        `/api/settings/restore?${query}&deleteExistingFiles=${deleteExistingFiles}`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` },
+          body: formData,
+        }
       ).then(r => r.json());
       if (response.status === 'ok') {
         success(t('common.success'), t('settings.restored'));

@@ -2,6 +2,7 @@ import {
   Checkbox,
   Group,
   Paper,
+  Select,
   SimpleGrid,
   Stack,
   Text,
@@ -198,6 +199,13 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
           {t('settings.dnsApps')}
         </Text>
         <Checkbox
+          label={t('settings.enableCheckForUpdate')}
+          description={t('settings.enableCheckForUpdateHelp')}
+          checked={s.dnsServerEnableCheckForUpdate}
+          onChange={e => set({ dnsServerEnableCheckForUpdate: e.currentTarget.checked })}
+          mb="sm"
+        />
+        <Checkbox
           label={t('settings.appsAutoUpdate')}
           description={t('settings.appsAutoUpdateHelp')}
           checked={s.dnsAppsEnableAutomaticUpdate}
@@ -210,11 +218,18 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
         <Text fw={600} mb="sm">
           {t('settings.ipv6')}
         </Text>
-        <Checkbox
-          label={t('settings.preferIpv6')}
-          description={t('settings.preferIpv6Help')}
-          checked={s.preferIPv6}
-          onChange={e => set({ preferIPv6: e.currentTarget.checked })}
+        <Select
+          label={t('settings.ipv6Mode')}
+          description={t('settings.ipv6ModeHelp')}
+          value={s.ipv6Mode}
+          data={[
+            { value: 'Disabled', label: t('settings.ipv6ModeDisabled') },
+            { value: 'Enabled', label: t('settings.ipv6ModeEnabled') },
+            { value: 'Preferred', label: t('settings.ipv6ModePreferred') },
+          ]}
+          allowDeselect={false}
+          onChange={value => set({ ipv6Mode: (value || 'Disabled') as Settings['ipv6Mode'] })}
+          maw={420}
         />
         <Text size="xs" c="dimmed" mt="sm">
           {t('settings.ipv6Warning')}
@@ -239,6 +254,20 @@ export function GeneralTab({ s, set }: { s: Settings; set: (patch: Partial<Setti
             value={toList(s.socketPoolExcludedPorts)}
             onChange={e => set({ socketPoolExcludedPorts: toArray(e.target.value).split(',') })}
             disabled={!s.enableUdpSocketPool}
+          />
+        </SimpleGrid>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="sm">
+          <TextInput
+            label={t('settings.udpSendBufferSize')}
+            description={t('settings.udpBufferSizeHelp')}
+            value={s.udpSendBufferSizeKB}
+            onChange={e => set({ udpSendBufferSizeKB: e.target.value })}
+          />
+          <TextInput
+            label={t('settings.udpReceiveBufferSize')}
+            description={t('settings.udpBufferSizeHelp')}
+            value={s.udpReceiveBufferSizeKB}
+            onChange={e => set({ udpReceiveBufferSizeKB: e.target.value })}
           />
         </SimpleGrid>
         <Text size="xs" c="dimmed" mt="sm">

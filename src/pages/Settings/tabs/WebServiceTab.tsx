@@ -31,6 +31,36 @@ export function WebServiceTab({
             onChange={e => set({ webServiceHttpPort: e.target.value })}
           />
         </Group>
+        <div className="form-grid form-grid--2" style={{ marginTop: 'var(--mantine-spacing-sm)' }}>
+          <Stack gap="xs">
+            <Checkbox
+              label={t('settings.enableHttpUnixSocket')}
+              checked={s.webServiceEnableHttpUnixSocket}
+              onChange={e => set({ webServiceEnableHttpUnixSocket: e.currentTarget.checked })}
+            />
+            <TextInput
+              label={t('settings.httpUnixSocket')}
+              description={t('settings.unixSocketHelp')}
+              value={s.webServiceHttpUnixSocket || ''}
+              onChange={e => set({ webServiceHttpUnixSocket: e.target.value })}
+              disabled={!s.webServiceEnableHttpUnixSocket}
+            />
+          </Stack>
+          <Stack gap="xs">
+            <Checkbox
+              label={t('settings.enableHttpsUnixSocket')}
+              checked={s.webServiceEnableTlsUnixSocket}
+              onChange={e => set({ webServiceEnableTlsUnixSocket: e.currentTarget.checked })}
+            />
+            <TextInput
+              label={t('settings.httpsUnixSocket')}
+              description={t('settings.unixSocketHelp')}
+              value={s.webServiceTlsUnixSocket || ''}
+              onChange={e => set({ webServiceTlsUnixSocket: e.target.value })}
+              disabled={!s.webServiceEnableTlsUnixSocket}
+            />
+          </Stack>
+        </div>
         <Group align="flex-start" mt="sm">
           <Checkbox
             label={t('settings.enableTls')}
@@ -98,6 +128,14 @@ export function WebServiceTab({
           />
         </div>
         <Group align="flex-start" grow mt="sm">
+          <Textarea
+            label={t('settings.webServiceReverseProxyAddresses')}
+            description={t('settings.webServiceReverseProxyAddressesHelp')}
+            value={toList(s.webServiceReverseProxyAddresses)}
+            onChange={e => set({ webServiceReverseProxyAddresses: e.target.value.split('\n') })}
+            minRows={3}
+            autosize
+          />
           <TextInput
             label={t('settings.realIpHeader')}
             description={t('settings.realIpHeaderHelp')}
@@ -105,6 +143,13 @@ export function WebServiceTab({
             onChange={e => set({ webServiceRealIpHeader: e.target.value })}
           />
         </Group>
+        <TextInput
+          mt="sm"
+          label={t('settings.cspFrameAncestors')}
+          description={t('settings.cspFrameAncestorsHelp')}
+          value={s.webServiceCspFrameAncestorsHeader}
+          onChange={e => set({ webServiceCspFrameAncestorsHeader: e.target.value })}
+        />
         <Text size="xs" c="dimmed" mt="sm">
           {t('settings.webServiceNote1')}
         </Text>

@@ -39,9 +39,9 @@ export function DnssecPropertiesModal({
     setLoading(true);
     const load = async () => {
       try {
-        const token = apiClient.getToken();
         const response = await fetch(
-          `/api/zones/dnssec/properties/get?token=${encodeURIComponent(token || '')}&zone=${encodeURIComponent(zone)}`
+          `/api/zones/dnssec/properties/get?zone=${encodeURIComponent(zone)}`,
+          { headers: { Authorization: `Bearer ${apiClient.getToken() || ''}` } }
         );
         const data = await response.json();
         if (data.status === 'ok' && data.response) {
@@ -138,6 +138,20 @@ export function DnssecPropertiesModal({
     }
   };
 
+  const handleActivateKsk = async (keyTag: number) => {
+    if (!window.confirm(t('zones.activateKskConfirm', { keyTag }))) return;
+    setSaving(true);
+    try {
+      await apiClient.post('/zones/dnssec/properties/activateKskDnsKey', { zone, keyTag });
+      success(t('common.success'), t('zones.kskActivated'));
+      await onSuccess();
+    } catch {
+      error(t('common.error'), t('zones.kskActivateFailed'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Modal
       opened={opened}
@@ -225,6 +239,7 @@ export function DnssecPropertiesModal({
                   <Table.Th>{t('zones.type')}</Table.Th>
                   <Table.Th>{t('zones.algorithm')}</Table.Th>
                   <Table.Th>{t('zones.state')}</Table.Th>
+                  <Table.Th></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -234,6 +249,18 @@ export function DnssecPropertiesModal({
                     <Table.Td>{key.keyType as string}</Table.Td>
                     <Table.Td>{key.algorithm as string}</Table.Td>
                     <Table.Td>{key.state as string}</Table.Td>
+                    <Table.Td>
+                      {key.keyType === 'KeySigningKey' && key.state === 'Ready' && (
+                        <Button
+                          size="compact-xs"
+                          variant="light"
+                          loading={saving}
+                          onClick={() => handleActivateKsk(Number(key.keyTag))}
+                        >
+                          {t('zones.activate')}
+                        </Button>
+                      )}
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
