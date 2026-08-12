@@ -10,6 +10,7 @@ import {
   Pagination,
   Paper,
   Select,
+  Skeleton,
   Stack,
   Switch,
   Table,
@@ -26,6 +27,7 @@ import { getRcodeColor } from '../../../utils/rcode';
 import type { QueryLogEntry, QueryLogsResponse } from '../types';
 import { PROTOCOLS, RESPONSE_TYPES, RCODES, QCLASSES } from '../constants';
 import { getRowColor } from '../utils';
+import { formatDateTime } from '../../../utils/dateTime';
 
 export function QueryLogsTab({
   initialQname = '',
@@ -49,6 +51,8 @@ export function QueryLogsTab({
   }
 
   const [appOptions, setAppOptions] = useState<{ value: string; label: string }[]>([]);
+  const [queryLogsApps, setQueryLogsApps] = useState<QueryLogsApp[]>([]);
+  const [appsLoading, setAppsLoading] = useState(true);
   const [classPathOptions, setClassPathOptions] = useState<string[]>([]);
   const [appName, setAppName] = useState('');
   const [classPath, setClassPath] = useState('');
@@ -80,10 +84,12 @@ export function QueryLogsTab({
   } | null>(null);
 
   const loadApps = useCallback(async () => {
+    setAppsLoading(true);
     try {
       const response = await apiClient.get<{ apps: QueryLogsApp[] }>('/apps/list');
       if (response.status === 'ok' && response.response) {
         const apps = response.response.apps;
+        setQueryLogsApps(apps);
         const names: string[] = [];
         for (const app of apps) {
           for (const dnsApp of app.dnsApps) {
@@ -94,10 +100,14 @@ export function QueryLogsTab({
           }
         }
         setAppOptions(names.map(n => ({ value: n, label: n })));
-        if (names.length > 0) setAppName(names[0]);
+        setAppName(current => (current && names.includes(current) ? current : names[0] || ''));
       }
     } catch {
+      setQueryLogsApps([]);
       setAppOptions([]);
+      setAppName('');
+    } finally {
+      setAppsLoading(false);
     }
   }, []);
 
@@ -111,25 +121,13 @@ export function QueryLogsTab({
       setClassPath('');
       return;
     }
-    async function loadClassPaths() {
-      try {
-        const response = await apiClient.get<{ apps: QueryLogsApp[] }>('/apps/list');
-        if (response.status === 'ok' && response.response) {
-          for (const app of response.response.apps) {
-            if (app.name === appName) {
-              const paths = app.dnsApps.filter(a => a.isQueryLogs).map(a => a.classPath);
-              setClassPathOptions(paths);
-              if (paths.length > 0) setClassPath(paths[0]);
-              break;
-            }
-          }
-        }
-      } catch {
-        setClassPathOptions([]);
-      }
-    }
-    loadClassPaths();
-  }, [appName]);
+    const app = queryLogsApps.find(item => item.name === appName);
+    const paths = app?.dnsApps.filter(item => item.isQueryLogs).map(item => item.classPath) || [];
+    setClassPathOptions(paths);
+    setClassPath(current => (current && paths.includes(current) ? current : paths[0] || ''));
+  }, [appName, queryLogsApps]);
+
+  const appSelectionLoading = appsLoading || (appName !== '' && classPathOptions.length === 0);
 
   // 自动查询：应用与类路径就绪后执行一次（含从其他页面带筛选参数跳转的场景）
   useEffect(() => {
@@ -225,24 +223,39 @@ export function QueryLogsTab({
     <Stack mt="md">
       <Paper shadow="sm" p="md" withBorder>
         <Group gap="sm" align="end" wrap="wrap">
-          <Select
-            label={t('common.appName')}
-            data={appOptions}
-            value={appName}
-            onChange={v => setAppName(v || '')}
-            w={200}
-            allowDeselect={false}
-            searchable
-          />
-          <Select
-            label={t('common.classPath')}
-            data={classPathOptions}
-            value={classPath}
-            onChange={v => setClassPath(v || '')}
-            w={260}
-            allowDeselect={false}
-            searchable
-          />
+          {appSelectionLoading ? (
+            <>
+              <Stack gap={6} w={200}>
+                <Skeleton height={10} width={76} />
+                <Skeleton height={36} radius="sm" />
+              </Stack>
+              <Stack gap={6} w={260}>
+                <Skeleton height={10} width={68} />
+                <Skeleton height={36} radius="sm" />
+              </Stack>
+            </>
+          ) : (
+            <>
+              <Select
+                label={t('common.appName')}
+                data={appOptions}
+                value={appName}
+                onChange={v => setAppName(v || '')}
+                w={200}
+                allowDeselect={false}
+                searchable
+              />
+              <Select
+                label={t('common.classPath')}
+                data={classPathOptions}
+                value={classPath}
+                onChange={v => setClassPath(v || '')}
+                w={260}
+                allowDeselect={false}
+                searchable
+              />
+            </>
+          )}
           <Select
             label={t('logs.logsPerPage')}
             data={['10', '25', '50', '100', '250', '500']}
@@ -435,7 +448,7 @@ export function QueryLogsTab({
                   >
                     <Table.Td>{entry.rowNumber}</Table.Td>
                     <Table.Td>
-                      <Text size="sm">{new Date(entry.timestamp).toLocaleString()}</Text>
+                      <Text size="sm">{formatDateTime(entry.timestamp)}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" style={{ maxWidth: 180 }} truncate="end">

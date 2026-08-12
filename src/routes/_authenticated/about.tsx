@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Center, Paper, Stack, Text, Title } from '@mantine/core';
 import { apiClient } from '../../api/client';
+import { formatDateTime } from '../../utils/dateTime';
 
 interface ServerInfo {
   version: string;
@@ -37,7 +38,7 @@ function AboutPage() {
           <Title order={2}>{t('layout.title')}</Title>
           <Text>{t('about.version', { version: info?.version || '-' })}</Text>
           {info?.uptimestamp && (
-            <Text>{t('about.upSince', { date: new Date(info.uptimestamp).toLocaleString() })}</Text>
+            <Text>{t('about.upSince', { date: formatDateTime(info.uptimestamp) })}</Text>
           )}
           <Text size="sm" c="dimmed" style={{ maxWidth: 600 }}>
             {t('about.copyright', { year: new Date().getFullYear() })}

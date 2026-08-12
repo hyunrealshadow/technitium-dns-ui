@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   Button,
+  Center,
   Checkbox,
   Group,
   Modal,
+  Loader,
   Select,
   Stack,
   Table,
@@ -15,6 +17,50 @@ import {
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../../components/notifications';
 import { apiClient } from '../../../../api/client';
+
+type ZoneOptionsTab = 'general' | 'queryAccess' | 'zoneTransfer' | 'notify' | 'dynamicUpdates';
+
+function getAvailableTabs(
+  zoneType: string,
+  catalog: string,
+  catalogOptionsCount: number
+): ZoneOptionsTab[] {
+  const tabs: ZoneOptionsTab[] = [];
+  const showCatalogSection =
+    ['Primary', 'Secondary', 'Stub', 'Forwarder', 'SecondaryForwarder'].includes(zoneType) &&
+    (catalogOptionsCount > 0 || catalog !== '');
+  const showPrimaryServerSection = [
+    'Secondary',
+    'SecondaryForwarder',
+    'SecondaryCatalog',
+    'Stub',
+  ].includes(zoneType);
+
+  if (showCatalogSection || showPrimaryServerSection) tabs.push('general');
+  if (
+    [
+      'Primary',
+      'Secondary',
+      'Stub',
+      'Forwarder',
+      'SecondaryForwarder',
+      'SecondaryCatalog',
+      'Catalog',
+    ].includes(zoneType)
+  ) {
+    tabs.push('queryAccess');
+  }
+  if (['Primary', 'Secondary', 'Forwarder', 'Catalog', 'SecondaryCatalog'].includes(zoneType)) {
+    tabs.push('zoneTransfer');
+  }
+  if (['Primary', 'Secondary', 'Forwarder', 'Catalog'].includes(zoneType)) tabs.push('notify');
+  if (['Primary', 'Secondary', 'SecondaryForwarder', 'Forwarder'].includes(zoneType)) {
+    tabs.push('dynamicUpdates');
+  }
+
+  return tabs;
+}
+
 export function ZoneOptionsModal({
   zone,
   opened,
@@ -28,6 +74,7 @@ export function ZoneOptionsModal({
 }) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(false);
 
   const [zoneType, setZoneType] = useState('');
   const [catalog, setCatalog] = useState('');
@@ -66,7 +113,7 @@ export function ZoneOptionsModal({
     { tsigKeyName: string; domain: string; allowedTypes: string }[]
   >([]);
 
-  const [tab, setTab] = useState('general');
+  const [tab, setTab] = useState<ZoneOptionsTab | null>(null);
 
   const QUERY_ACCESS_OPTIONS = [
     { value: 'Deny', label: t('zones.policyOptions.deny') },
@@ -119,7 +166,8 @@ export function ZoneOptionsModal({
   useEffect(() => {
     if (!opened) return;
     const load = async () => {
-      setTab('general');
+      setLoadingOptions(true);
+      setTab(null);
       try {
         const response = await fetch(
           `/api/zones/options/get?zone=${encodeURIComponent(zone)}&includeAvailableCatalogZoneNames=true&includeAvailableTsigKeyNames=true`,
@@ -128,11 +176,16 @@ export function ZoneOptionsModal({
         const data = await response.json();
         if (data.status === 'ok' && data.response) {
           const r = data.response;
-          setZoneType(r.type || '');
-          setCatalog(r.catalog || '');
-          setCatalogOptions(
-            (r.availableCatalogZoneNames || []).map((n: string) => ({ value: n, label: n }))
-          );
+          const nextZoneType = r.type || '';
+          const nextCatalog = r.catalog || '';
+          const nextCatalogOptions = (r.availableCatalogZoneNames || []).map((n: string) => ({
+            value: n,
+            label: n,
+          }));
+          setZoneType(nextZoneType);
+          setCatalog(nextCatalog);
+          setCatalogOptions(nextCatalogOptions);
+          setTab(getAvailableTabs(nextZoneType, nextCatalog, nextCatalogOptions.length)[0] ?? null);
           setOverrideQueryAccess(r.overrideCatalogQueryAccess || false);
           setOverrideZoneTransfer(r.overrideCatalogZoneTransfer || false);
           setOverrideNotify(r.overrideCatalogNotify || false);
@@ -160,6 +213,8 @@ export function ZoneOptionsModal({
         }
       } catch {
         error(t('common.error'), t('zones.optionsLoadFailed'));
+      } finally {
+        setLoadingOptions(false);
       }
     };
     load();
@@ -178,26 +233,19 @@ export function ZoneOptionsModal({
     'Stub',
   ].includes(zoneType);
 
-  const canShowQueryAccessTab = [
-    'Primary',
-    'Secondary',
-    'Stub',
-    'Forwarder',
-    'SecondaryForwarder',
-    'SecondaryCatalog',
-    'Catalog',
-  ].includes(zoneType);
-  const canShowZoneTransferTab = [
-    'Primary',
-    'Secondary',
-    'Forwarder',
-    'Catalog',
-    'SecondaryCatalog',
-  ].includes(zoneType);
-  const canShowNotifyTab = ['Primary', 'Secondary', 'Forwarder', 'Catalog'].includes(zoneType);
-  const canShowUpdateTab = ['Primary', 'Secondary', 'SecondaryForwarder', 'Forwarder'].includes(
-    zoneType
-  );
+  const availableTabs = getAvailableTabs(zoneType, catalog, catalogOptions.length);
+  const canShowQueryAccessTab = availableTabs.includes('queryAccess');
+  const canShowZoneTransferTab = availableTabs.includes('zoneTransfer');
+  const canShowNotifyTab = availableTabs.includes('notify');
+  const canShowUpdateTab = availableTabs.includes('dynamicUpdates');
+  const firstAvailableTab = availableTabs[0] ?? null;
+  const isCurrentTabAvailable = tab !== null && availableTabs.includes(tab);
+
+  useEffect(() => {
+    if (opened && firstAvailableTab && !isCurrentTabAvailable) {
+      setTab(firstAvailableTab);
+    }
+  }, [opened, firstAvailableTab, isCurrentTabAvailable]);
 
   const showQueryAccessZoneNsOptions = zoneType === 'Primary' || zoneType === 'Secondary';
   const showZoneTransferZoneNsOptions = zoneType === 'Primary' || zoneType === 'Secondary';
@@ -268,7 +316,16 @@ export function ZoneOptionsModal({
 
   return (
     <Modal opened={opened} onClose={onClose} title={`${t('zones.zoneOptions')}: ${zone}`} size="lg">
-      <Tabs value={tab} onChange={v => setTab(v || 'general')}>
+      {loadingOptions && (
+        <Center py="xl">
+          <Loader size="sm" />
+        </Center>
+      )}
+      <Tabs
+        value={tab}
+        onChange={v => v && setTab(v as ZoneOptionsTab)}
+        style={{ display: loadingOptions ? 'none' : undefined }}
+      >
         <Tabs.List>
           {(showCatalogSection || showPrimaryServerSection) && (
             <Tabs.Tab value="general">{t('zones.general')}</Tabs.Tab>
@@ -656,7 +713,7 @@ export function ZoneOptionsModal({
         <Button variant="subtle" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={handleSave} loading={saving}>
+        <Button onClick={handleSave} loading={saving} disabled={loadingOptions || !tab}>
           {t('common.save')}
         </Button>
       </Group>

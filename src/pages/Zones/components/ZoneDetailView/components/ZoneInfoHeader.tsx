@@ -31,6 +31,7 @@ import {
   canShowOptions,
   getStatusColor,
 } from '../utils';
+import { formatDateTime } from '../../../../../utils/dateTime';
 
 // Zone 详情头部卡片：标题、类型/DNSSEC/状态徽章与操作按钮组
 export function ZoneInfoHeader({
@@ -145,7 +146,7 @@ export function ZoneInfoHeader({
             </Group>
             {zoneInfo.expiry && (
               <Text size="xs" fw={600}>
-                {t('zones.expiry')}: {new Date(zoneInfo.expiry).toLocaleString()}
+                {t('zones.expiry')}: {formatDateTime(zoneInfo.expiry)}
               </Text>
             )}
           </Stack>

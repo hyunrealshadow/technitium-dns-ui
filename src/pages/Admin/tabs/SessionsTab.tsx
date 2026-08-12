@@ -20,6 +20,7 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
 import type { AdminSession } from '../types';
+import { formatDateTime } from '../../../utils/dateTime';
 
 export function SessionsTab() {
   const { t } = useTranslation();
@@ -142,7 +143,7 @@ export function SessionsTab() {
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{new Date(session.lastSeen).toLocaleString()}</Text>
+                    <Text size="sm">{formatDateTime(session.lastSeen)}</Text>
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{session.lastSeenRemoteAddress}</Text>

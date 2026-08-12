@@ -5,6 +5,8 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import type { StoreApp } from '../types';
 
+type StoreAction = 'install' | 'update' | 'uninstall';
+
 // 应用商店 Modal：打开时加载商店列表，支持安装/更新/卸载
 export function AppStoreModal({
   opened,
@@ -18,6 +20,10 @@ export function AppStoreModal({
 }) {
   const { t } = useTranslation();
   const [storeApps, setStoreApps] = useState<StoreApp[]>([]);
+  const [pendingAction, setPendingAction] = useState<{
+    appName: string;
+    action: StoreAction;
+  } | null>(null);
 
   const loadStore = async () => {
     try {
@@ -36,6 +42,7 @@ export function AppStoreModal({
   }, [opened]);
 
   const installFromStore = async (app: StoreApp) => {
+    setPendingAction({ appName: app.name, action: 'install' });
     try {
       const response = await apiClient.post(
         `/apps/downloadAndInstall?name=${encodeURIComponent(app.name)}&url=${encodeURIComponent(app.url)}`,
@@ -48,10 +55,13 @@ export function AppStoreModal({
       }
     } catch {
       error(t('common.error'), t('apps.installFailed'));
+    } finally {
+      setPendingAction(null);
     }
   };
 
   const updateFromStore = async (app: StoreApp) => {
+    setPendingAction({ appName: app.name, action: 'update' });
     try {
       const response = await apiClient.post(
         `/apps/downloadAndUpdate?name=${encodeURIComponent(app.name)}&url=${encodeURIComponent(app.url)}`,
@@ -64,11 +74,14 @@ export function AppStoreModal({
       }
     } catch {
       error(t('common.error'), t('apps.updateFailed'));
+    } finally {
+      setPendingAction(null);
     }
   };
 
   const uninstallFromStore = async (app: StoreApp) => {
     if (!window.confirm(t('apps.uninstallConfirm', { name: app.name }))) return;
+    setPendingAction({ appName: app.name, action: 'uninstall' });
     try {
       const response = await apiClient.post(
         `/apps/uninstall?name=${encodeURIComponent(app.name)}`,
@@ -81,6 +94,8 @@ export function AppStoreModal({
       }
     } catch {
       error(t('common.error'), t('apps.uninstallFailed'));
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -123,12 +138,33 @@ export function AppStoreModal({
                 <Table.Td style={{ verticalAlign: 'top' }}>
                   <Stack gap={6}>
                     {!app.installed && (
-                      <Button size="xs" onClick={() => installFromStore(app)}>
+                      <Button
+                        size="xs"
+                        loading={
+                          pendingAction?.appName === app.name && pendingAction.action === 'install'
+                        }
+                        disabled={
+                          pendingAction !== null &&
+                          (pendingAction.appName !== app.name || pendingAction.action !== 'install')
+                        }
+                        onClick={() => installFromStore(app)}
+                      >
                         {t('apps.install')}
                       </Button>
                     )}
                     {showUpdate && (
-                      <Button size="xs" color="yellow" onClick={() => updateFromStore(app)}>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        loading={
+                          pendingAction?.appName === app.name && pendingAction.action === 'update'
+                        }
+                        disabled={
+                          pendingAction !== null &&
+                          (pendingAction.appName !== app.name || pendingAction.action !== 'update')
+                        }
+                        onClick={() => updateFromStore(app)}
+                      >
                         {t('apps.update')}
                       </Button>
                     )}
@@ -137,6 +173,15 @@ export function AppStoreModal({
                         size="xs"
                         color="red"
                         variant="light"
+                        loading={
+                          pendingAction?.appName === app.name &&
+                          pendingAction.action === 'uninstall'
+                        }
+                        disabled={
+                          pendingAction !== null &&
+                          (pendingAction.appName !== app.name ||
+                            pendingAction.action !== 'uninstall')
+                        }
                         onClick={() => uninstallFromStore(app)}
                       >
                         {t('apps.uninstall')}

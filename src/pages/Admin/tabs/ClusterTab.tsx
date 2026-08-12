@@ -5,6 +5,7 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
 import type { ClusterNode } from '../types';
+import { formatDateTime } from '../../../utils/dateTime';
 
 export function ClusterTab() {
   const { t } = useTranslation();
@@ -151,9 +152,9 @@ export function ClusterTab() {
                   <Table.Td>{node.url}</Table.Td>
                   <Table.Td>{node.type}</Table.Td>
                   <Table.Td>{node.state}</Table.Td>
-                  <Table.Td>{new Date(node.upSince).toLocaleString()}</Table.Td>
-                  <Table.Td>{new Date(node.lastSeen).toLocaleString()}</Table.Td>
-                  <Table.Td>{new Date(node.lastSynced).toLocaleString()}</Table.Td>
+                  <Table.Td>{formatDateTime(node.upSince)}</Table.Td>
+                  <Table.Td>{formatDateTime(node.lastSeen)}</Table.Td>
+                  <Table.Td>{formatDateTime(node.lastSynced)}</Table.Td>
                 </Table.Tr>
               ))}
             </Table.Tbody>

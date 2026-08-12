@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { error } from '../../../components/notifications';
 import type { QuickBlockList, Settings } from '../types';
 import { toList, toArray } from '../constants';
+import { formatDateTime } from '../../../utils/dateTime';
 
 export function BlockingTab({
   s,
@@ -170,7 +171,7 @@ export function BlockingTab({
           {s.temporaryDisableBlockingTill && (
             <Text size="sm" c="orange">
               {t('settings.temporarilyDisabledTill', {
-                date: new Date(s.temporaryDisableBlockingTill).toLocaleString(),
+                date: formatDateTime(s.temporaryDisableBlockingTill),
               })}
             </Text>
           )}
@@ -243,7 +244,7 @@ export function BlockingTab({
             description={t('settings.blockListNextUpdateOnHelp')}
             value={
               s.blockListNextUpdatedOn
-                ? new Date(s.blockListNextUpdatedOn).toLocaleString()
+                ? formatDateTime(s.blockListNextUpdatedOn)
                 : t('settings.notScheduled')
             }
             disabled

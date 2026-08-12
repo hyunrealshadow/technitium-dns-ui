@@ -896,6 +896,7 @@
     "install": "Install",
     "configJson": "Config (JSON)",
     "noAppsInstalled": "No apps installed",
+    "installedApps": "Installed Apps",
     "versionLabel": "Version {{version}}",
     "updateAvailable": " (update available: {{version}})",
     "update": "Update",
@@ -914,6 +915,7 @@
       "generic": "Generic"
     },
     "moreDetails": "More Details",
+    "lessDetails": "Less Details",
     "storeUpdate": "Store Update",
     "totalApps": "Total Apps: {{count}}",
     "updateLabel": "Update {{version}}",

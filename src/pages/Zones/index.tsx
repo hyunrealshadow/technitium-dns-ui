@@ -39,6 +39,7 @@ import { apiClient } from '../../api/client';
 import { PageHeader } from '../../components/PageHeader';
 import i18n from '../../i18n';
 import { colorModeAtom, resolveColorMode } from '../../store/theme';
+import { formatDateTime } from '../../utils/dateTime';
 import type { ZonesListResponse, ZoneInfo } from './types';
 import { ZoneDetailView } from './components/ZoneDetailView';
 import { AddZoneModal } from './components/AddZoneModal';
@@ -660,14 +661,10 @@ function ZoneListView({
                           <Text size="sm">{zone.soaSerial ?? '-'}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">
-                            {zone.expiry ? new Date(zone.expiry).toLocaleString() : '-'}
-                          </Text>
+                          <Text size="sm">{formatDateTime(zone.expiry)}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">
-                            {zone.lastModified ? new Date(zone.lastModified).toLocaleString() : '-'}
-                          </Text>
+                          <Text size="sm">{formatDateTime(zone.lastModified)}</Text>
                         </Table.Td>
                         <Table.Td>
                           <Menu position="bottom-end" shadow="sm">

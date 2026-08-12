@@ -896,6 +896,7 @@
     "install": "安装",
     "configJson": "配置（JSON）",
     "noAppsInstalled": "未安装任何应用",
+    "installedApps": "已安装的应用",
     "versionLabel": "版本 {{version}}",
     "updateAvailable": "（有可用更新：{{version}}）",
     "update": "更新",
@@ -914,6 +915,7 @@
       "generic": "通用"
     },
     "moreDetails": "更多详情",
+    "lessDetails": "收起详情",
     "storeUpdate": "商店更新",
     "totalApps": "应用总数：{{count}}",
     "updateLabel": "更新 {{version}}",

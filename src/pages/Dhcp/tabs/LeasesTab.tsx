@@ -17,6 +17,7 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
 import type { DhcpLease } from '../types';
+import { formatDateTime } from '../../../utils/dateTime';
 
 export function LeasesTab() {
   const { t } = useTranslation();
@@ -143,8 +144,8 @@ export function LeasesTab() {
                       </Badge>
                     </Table.Td>
                     <Table.Td>{lease.hostName}</Table.Td>
-                    <Table.Td>{new Date(lease.leaseObtained).toLocaleString()}</Table.Td>
-                    <Table.Td>{new Date(lease.leaseExpires).toLocaleString()}</Table.Td>
+                    <Table.Td>{formatDateTime(lease.leaseObtained)}</Table.Td>
+                    <Table.Td>{formatDateTime(lease.leaseExpires)}</Table.Td>
                     <Table.Td>
                       <Menu position="bottom-end" shadow="sm">
                         <Menu.Target>

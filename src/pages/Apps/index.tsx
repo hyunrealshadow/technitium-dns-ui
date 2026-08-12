@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   Badge,
   Box,
   Button,
   Code,
+  Collapse,
+  Divider,
   FileInput,
   Grid,
   Group,
@@ -11,10 +13,17 @@ import {
   Paper,
   Skeleton,
   Stack,
+  Table,
   Text,
   TextInput,
 } from '@mantine/core';
-import { IconDownload, IconPlus, IconRefresh } from '@tabler/icons-react';
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconDownload,
+  IconPlus,
+  IconRefresh,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
@@ -36,9 +45,20 @@ export function AppsPage() {
   const [updateTarget, setUpdateTarget] = useState<App | null>(null);
   const [updateFile, setUpdateFile] = useState<File | null>(null);
   const [configApp, setConfigApp] = useState<App | null>(null);
+  const [storeUpdatingApp, setStoreUpdatingApp] = useState<string | null>(null);
+  const [expandedApps, setExpandedApps] = useState<Set<string>>(() => new Set());
 
-  const fetchApps = async () => {
-    setLoading(true);
+  const toggleDetails = (appName: string) => {
+    setExpandedApps(current => {
+      const next = new Set(current);
+      if (next.has(appName)) next.delete(appName);
+      else next.add(appName);
+      return next;
+    });
+  };
+
+  const fetchApps = async (showSkeleton = true) => {
+    if (showSkeleton) setLoading(true);
     try {
       const response = await apiClient.get<{ apps: App[] }>('/apps/list');
       if (response.status === 'ok' && response.response) {
@@ -47,7 +67,7 @@ export function AppsPage() {
     } catch {
       error(t('common.error'), t('apps.loadFailed'));
     } finally {
-      setLoading(false);
+      if (showSkeleton) setLoading(false);
     }
   };
 
@@ -92,7 +112,7 @@ export function AppsPage() {
         setInstallOpen(false);
         setInstallName('');
         setInstallFile(null);
-        await fetchApps();
+        await fetchApps(false);
       } else {
         throw new Error(response.errorMessage || 'Failed');
       }
@@ -126,7 +146,7 @@ export function AppsPage() {
         success(t('common.success'), t('apps.updatedWithName', { name: updateTarget.name }));
         setUpdateOpen(false);
         setUpdateFile(null);
-        await fetchApps();
+        await fetchApps(false);
       } else {
         throw new Error(response.errorMessage || 'Failed');
       }
@@ -137,6 +157,7 @@ export function AppsPage() {
 
   const storeUpdate = async (app: App) => {
     if (!app.updateUrl) return;
+    setStoreUpdatingApp(app.name);
     try {
       const response = await apiClient.post(
         `/apps/downloadAndUpdate?name=${encodeURIComponent(app.name)}&url=${encodeURIComponent(app.updateUrl)}`,
@@ -144,10 +165,12 @@ export function AppsPage() {
       );
       if (response.status === 'ok') {
         success(t('common.success'), t('apps.updatedWithName', { name: app.name }));
-        await fetchApps();
+        await fetchApps(false);
       }
     } catch {
       error(t('common.error'), t('apps.updateFailed'));
+    } finally {
+      setStoreUpdatingApp(null);
     }
   };
 
@@ -160,7 +183,7 @@ export function AppsPage() {
       );
       if (response.status === 'ok') {
         success(t('common.success'), t('apps.uninstalledWithName', { name: app.name }));
-        await fetchApps();
+        await fetchApps(false);
       }
     } catch {
       error(t('common.error'), t('apps.uninstallFailed'));
@@ -222,7 +245,7 @@ export function AppsPage() {
             >
               {t('apps.install')}
             </Button>
-            <Button size="xs" leftSection={<IconRefresh size={15} />} onClick={fetchApps}>
+            <Button size="xs" leftSection={<IconRefresh size={15} />} onClick={() => fetchApps()}>
               {t('common.refresh')}
             </Button>
           </>
@@ -238,85 +261,150 @@ export function AppsPage() {
       ) : (
         <Paper shadow="sm" p={0} withBorder>
           <Stack gap={0}>
-            {apps.map(app => (
-              <Box key={app.name} className="app-list-item" p={{ base: 'md', sm: 'lg' }}>
-                <Grid gap={{ base: 'md', sm: 'xl' }}>
-                  <Grid.Col span={{ base: 12, sm: 9, xl: 10 }}>
-                    <Text fw={700} size="lg">
-                      {app.name}
-                    </Text>
-                    <Group gap={6} mt={4}>
-                      <Badge variant="light" color="blue" tt="none">
-                        {t('apps.versionLabel', { version: app.version })}
-                      </Badge>
-                      {app.updateAvailable && app.updateVersion && (
-                        <Badge color="yellow" tt="none">
-                          {t('apps.updateLabel', { version: app.updateVersion })}
-                        </Badge>
-                      )}
-                    </Group>
-                    {app.description && (
-                      <Text size="sm" c="dimmed" mt={8} style={{ whiteSpace: 'pre-wrap' }}>
-                        {app.description}
+            <Text
+              fw={600}
+              p="md"
+              style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
+            >
+              {t('apps.installedApps')}
+            </Text>
+            {apps.map((app, index) => (
+              <Fragment key={app.name}>
+                {index > 0 && <Divider />}
+                <Box className="app-list-item" p={{ base: 'md', sm: 'lg' }}>
+                  <Grid gap={{ base: 'md', sm: 'xl' }}>
+                    <Grid.Col span={{ base: 12, sm: 9, xl: 10 }}>
+                      <Text fw={700} size="lg">
+                        {app.name}
                       </Text>
-                    )}
-                    {app.dnsApps.length > 0 && (
-                      <Stack gap="md" mt="md">
-                        {app.dnsApps.map((dnsApp, idx) => (
-                          <Grid key={idx} gap={{ base: 'xs', sm: 'lg' }}>
-                            <Grid.Col span={{ base: 12, md: 5 }}>
-                              <Text size="sm">{dnsApp.classPath}</Text>
-                              <Group gap={4} mt={4}>
-                                {getTypeLabels(dnsApp, t).map(label => (
-                                  <Badge key={label.label} size="xs" color={label.color} tt="none">
-                                    {label.label}
-                                  </Badge>
-                                ))}
-                              </Group>
-                            </Grid.Col>
-                            <Grid.Col span={{ base: 12, md: 7 }}>
-                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                                {dnsApp.description}
-                              </Text>
-                              {dnsApp.isAppRecordRequestHandler && dnsApp.recordDataTemplate && (
-                                <Stack gap={2} mt={4}>
-                                  <Text size="xs" fw={600}>
-                                    {t('apps.recordDataTemplate')}
-                                  </Text>
-                                  <Code block>{dnsApp.recordDataTemplate}</Code>
-                                </Stack>
-                              )}
-                            </Grid.Col>
-                          </Grid>
-                        ))}
-                      </Stack>
-                    )}
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 3, xl: 2 }}>
-                    <Group className="app-item-actions" gap={6}>
-                      <Button size="xs" variant="default" onClick={() => setConfigApp(app)}>
-                        {t('apps.config')}
-                      </Button>
-                      <Button size="xs" variant="default" onClick={() => openUpdate(app)}>
-                        {t('apps.update')}
-                      </Button>
-                      {app.updateAvailable && app.updateUrl && (
-                        <Button size="xs" color="yellow" onClick={() => storeUpdate(app)}>
-                          {t('apps.storeUpdate')}
-                        </Button>
+                      <Group gap={6} mt={4}>
+                        <Badge variant="light" color="blue" tt="none">
+                          {t('apps.versionLabel', { version: app.version })}
+                        </Badge>
+                        {app.updateAvailable && app.updateVersion && (
+                          <Badge color="yellow" tt="none">
+                            {t('apps.updateLabel', { version: app.updateVersion })}
+                          </Badge>
+                        )}
+                      </Group>
+                      {app.description && (
+                        <Text size="sm" c="dimmed" mt={8} style={{ whiteSpace: 'pre-wrap' }}>
+                          {app.description}
+                        </Text>
                       )}
-                      <Button
-                        size="xs"
-                        color="red"
-                        variant="light"
-                        onClick={() => uninstallApp(app)}
-                      >
-                        {t('apps.uninstall')}
-                      </Button>
-                    </Group>
-                  </Grid.Col>
-                </Grid>
-              </Box>
+                      {app.dnsApps.length > 0 && (
+                        <>
+                          <Button
+                            size="compact-sm"
+                            variant="subtle"
+                            px={0}
+                            mt="xs"
+                            leftSection={
+                              expandedApps.has(app.name) ? (
+                                <IconChevronDown size={14} />
+                              ) : (
+                                <IconChevronRight size={14} />
+                              )
+                            }
+                            onClick={() => toggleDetails(app.name)}
+                          >
+                            {t(
+                              expandedApps.has(app.name) ? 'apps.lessDetails' : 'apps.moreDetails'
+                            )}
+                          </Button>
+                          <Collapse expanded={expandedApps.has(app.name)}>
+                            <Table.ScrollContainer minWidth={680} mt="xs">
+                              <Table verticalSpacing="sm">
+                                <Table.Thead>
+                                  <Table.Tr>
+                                    <Table.Th w="34%">{t('common.classPath')}</Table.Th>
+                                    <Table.Th>{t('common.description')}</Table.Th>
+                                  </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                  {app.dnsApps.map((dnsApp, idx) => (
+                                    <Table.Tr key={`${dnsApp.classPath}-${idx}`}>
+                                      <Table.Td style={{ verticalAlign: 'top' }}>
+                                        <Text size="sm">{dnsApp.classPath}</Text>
+                                        <Group gap={4} mt={4}>
+                                          {getTypeLabels(dnsApp, t).map(label => (
+                                            <Badge
+                                              key={label.label}
+                                              size="xs"
+                                              color={label.color}
+                                              tt="none"
+                                            >
+                                              {label.label}
+                                            </Badge>
+                                          ))}
+                                        </Group>
+                                      </Table.Td>
+                                      <Table.Td style={{ verticalAlign: 'top' }}>
+                                        <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                                          {dnsApp.description}
+                                        </Text>
+                                        {dnsApp.isAppRecordRequestHandler &&
+                                          dnsApp.recordDataTemplate && (
+                                            <Stack gap={2} mt="sm">
+                                              <Text size="xs" fw={600}>
+                                                {t('apps.recordDataTemplate')}
+                                              </Text>
+                                              <Code block>{dnsApp.recordDataTemplate}</Code>
+                                            </Stack>
+                                          )}
+                                      </Table.Td>
+                                    </Table.Tr>
+                                  ))}
+                                </Table.Tbody>
+                              </Table>
+                            </Table.ScrollContainer>
+                          </Collapse>
+                        </>
+                      )}
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 3, xl: 2 }}>
+                      <Group className="app-item-actions" gap={6}>
+                        <Button
+                          size="xs"
+                          variant="default"
+                          disabled={storeUpdatingApp !== null}
+                          onClick={() => setConfigApp(app)}
+                        >
+                          {t('apps.config')}
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="default"
+                          disabled={storeUpdatingApp !== null}
+                          onClick={() => openUpdate(app)}
+                        >
+                          {t('apps.update')}
+                        </Button>
+                        {app.updateAvailable && app.updateUrl && (
+                          <Button
+                            size="xs"
+                            variant="light"
+                            loading={storeUpdatingApp === app.name}
+                            disabled={storeUpdatingApp !== null && storeUpdatingApp !== app.name}
+                            onClick={() => storeUpdate(app)}
+                          >
+                            {t('apps.storeUpdate')}
+                          </Button>
+                        )}
+                        <Button
+                          size="xs"
+                          color="red"
+                          variant="light"
+                          disabled={storeUpdatingApp !== null}
+                          onClick={() => uninstallApp(app)}
+                        >
+                          {t('apps.uninstall')}
+                        </Button>
+                      </Group>
+                    </Grid.Col>
+                  </Grid>
+                </Box>
+              </Fragment>
             ))}
           </Stack>
           <Text fw={600} p="md">
@@ -328,7 +416,7 @@ export function AppsPage() {
       <AppStoreModal
         opened={storeOpen}
         onClose={() => setStoreOpen(false)}
-        onInstalled={fetchApps}
+        onInstalled={() => fetchApps(false)}
       />
 
       <Modal
@@ -387,7 +475,7 @@ export function AppsPage() {
         app={configApp}
         opened={configApp !== null}
         onClose={() => setConfigApp(null)}
-        onSaved={fetchApps}
+        onSaved={() => fetchApps(false)}
       />
     </Stack>
   );

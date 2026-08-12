@@ -51,6 +51,7 @@ import { z } from 'zod';
 import { success, error } from './notifications';
 import { apiClient } from '../api/client';
 import { colorModeAtom, resolveColorMode } from '../store/theme';
+import { formatDateTime } from '../utils/dateTime';
 import classes from './ZoneBrowser.module.css';
 
 type ApiBase = 'cache' | 'allowed' | 'blocked';
@@ -373,15 +374,6 @@ function prettifyFieldKey(key: string): string {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
 }
 
-// 时间值按 YYYY-MM-DD HH:MM:SS（本地时间）显示；无效时间或 .NET DateTime.MinValue（0001-01-01）返回 undefined
-function formatTimestamp(value: unknown): string | undefined {
-  const d = new Date(String(value));
-  if (isNaN(d.getTime())) return undefined;
-  if (d.getFullYear() < 1000) return undefined;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
 // 把 rData（含顶层附加字段）平铺为键值对列表；嵌套对象递归展开，数组逐行展示。
 // 数字字段存在对应的 xxxString 友好值（如 refreshString: "15m"）时，用友好值替换并隐藏冗余字段。
 function flattenRecordFields(record: ZoneBrowserRecord, t: TFunction): RecordField[] {
@@ -403,7 +395,7 @@ function flattenRecordFields(record: ZoneBrowserRecord, t: TFunction): RecordFie
       (key === 'signatureExpiration' || key === 'signatureInception') &&
       typeof display === 'string'
     ) {
-      display = formatTimestamp(display) ?? display;
+      display = formatDateTime(display, '') || display;
     }
     const text = Array.isArray(display) ? (display as unknown[]).join('\n') : String(display ?? '');
     fields.push({ label, value: text });
@@ -433,8 +425,8 @@ function flattenRecordFields(record: ZoneBrowserRecord, t: TFunction): RecordFie
   // 记录顶层附加信息（缓存命中统计、DNSSEC、glue 等；响应/名称服务器元数据单独列出）
   const extras: [string, unknown][] = [
     ['comments', record.comments],
-    ['lastUsedOn', record.lastUsedOn ? formatTimestamp(record.lastUsedOn) : undefined],
-    ['lastModified', record.lastModified ? formatTimestamp(record.lastModified) : undefined],
+    ['lastUsedOn', record.lastUsedOn ? formatDateTime(record.lastUsedOn, '') : undefined],
+    ['lastModified', record.lastModified ? formatDateTime(record.lastModified, '') : undefined],
     ['dnssecStatus', record.dnssecStatus],
     ['eDnsClientSubnet', record.eDnsClientSubnet],
     ['glueRecords', record.glueRecords],

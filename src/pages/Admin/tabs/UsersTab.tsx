@@ -19,12 +19,7 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
 import type { AdminUser } from '../types';
-
-function formatDateTime(value?: string) {
-  if (!value) return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
-}
+import { formatDateTime } from '../../../utils/dateTime';
 
 function AddUserForm({
   onCancel,
