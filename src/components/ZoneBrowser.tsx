@@ -9,9 +9,11 @@ import {
   Center,
   DataList,
   Divider,
+  Grid,
   Group,
   Modal,
   Paper,
+  ScrollArea,
   SegmentedControl,
   Skeleton,
   Stack,
@@ -19,7 +21,7 @@ import {
   Text,
   TextInput,
   Textarea,
-  Tooltip,
+  Title,
 } from '@mantine/core';
 import {
   IconChevronDown,
@@ -49,6 +51,7 @@ import { z } from 'zod';
 import { success, error } from './notifications';
 import { apiClient } from '../api/client';
 import { colorModeAtom, resolveColorMode } from '../store/theme';
+import classes from './ZoneBrowser.module.css';
 
 type ApiBase = 'cache' | 'allowed' | 'blocked';
 
@@ -66,6 +69,14 @@ interface ZoneBrowserRecord {
   eDnsClientSubnet?: string;
   glueRecords?: string[];
   dnssecRecords?: string[];
+  // 缓存/NS 记录的顶层元数据（WriteRecordsAsJson 写在记录对象级，不在 rData 内）
+  responseMetadata?: {
+    nameServer?: string;
+    protocol?: string;
+    datagramSize?: string;
+    roundTripTime?: string;
+  };
+  nameServerMetadata?: Record<string, unknown>;
   rData?: Record<string, unknown>;
 }
 
@@ -419,7 +430,7 @@ function flattenRecordFields(record: ZoneBrowserRecord, t: TFunction): RecordFie
 
   if (record.rData) walk(record.rData, '');
 
-  // 记录顶层附加信息（缓存命中统计、DNSSEC、glue 等）
+  // 记录顶层附加信息（缓存命中统计、DNSSEC、glue 等；响应/名称服务器元数据单独列出）
   const extras: [string, unknown][] = [
     ['comments', record.comments],
     ['lastUsedOn', record.lastUsedOn ? formatTimestamp(record.lastUsedOn) : undefined],
@@ -444,8 +455,32 @@ function flattenRecordFields(record: ZoneBrowserRecord, t: TFunction): RecordFie
       }
       continue;
     }
-    pushField(key, value);
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      walk(value as Record<string, unknown>, key);
+    } else {
+      pushField(key, value);
+    }
   }
+
+  return fields;
+}
+
+// 响应/名称服务器元数据（缓存记录特有的上游性能信息）展平为独立列表，子键直接翻译（无前缀）
+function flattenMetadataFields(record: ZoneBrowserRecord, t: TFunction): RecordField[] {
+  const fields: RecordField[] = [];
+
+  const pushSub = (obj: Record<string, unknown>) => {
+    for (const [subKey, subValue] of Object.entries(obj)) {
+      const i18nKey = RDATA_FIELD_LABEL_KEYS[subKey];
+      const label = i18nKey
+        ? t(`zoneTree.fieldLabels.${i18nKey}`, { defaultValue: prettifyFieldKey(subKey) })
+        : prettifyFieldKey(subKey);
+      fields.push({ label, value: String(subValue ?? '') });
+    }
+  };
+
+  if (record.responseMetadata) pushSub(record.responseMetadata);
+  if (record.nameServerMetadata) pushSub(record.nameServerMetadata);
 
   return fields;
 }
@@ -504,6 +539,8 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   const zones = data?.zones ?? EMPTY_ZONES;
   const displayDomain = data?.domainIdn || data?.domain || '';
   const hasStatusColumn = records.some(r => r.disabled !== undefined);
+  // DNS 服务器列：仅缓存记录带 responseMetadata（上游来源服务器），允许/阻止列表无此字段时不显示该列
+  const hasDnsServerColumn = records.some(r => !!r.responseMetadata?.nameServer);
 
   const flushMessages = {
     cache: {
@@ -626,10 +663,19 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   };
 
   return (
-    <Stack>
-      <Paper shadow="sm" p="md" withBorder>
-        <Group justify="space-between" mb="md" wrap="wrap">
-          <Breadcrumbs separator="›" separatorMargin="sm">
+    <Stack gap="md">
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
+        <Stack gap={4} className={classes.headerContent}>
+          <Title order={2}>
+            {t(
+              apiBase === 'cache'
+                ? 'nav.cachedZones'
+                : apiBase === 'allowed'
+                  ? 'nav.allowList'
+                  : 'nav.blockList'
+            )}
+          </Title>
+          <Breadcrumbs separator="›" separatorMargin="xs">
             {crumbs.map((crumb, i) =>
               crumb.onClick ? (
                 <Anchor key={i} component="button" size="sm" onClick={crumb.onClick}>
@@ -642,44 +688,27 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
               )
             )}
           </Breadcrumbs>
-          <Group gap="xs">
-            <Tooltip label={t('common.refresh')}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={() => refetch()}
-                loading={isLoading}
-              >
-                <IconRefresh size={18} />
-              </ActionIcon>
-            </Tooltip>
-            <Button
-              size="xs"
-              variant="default"
-              color="red"
-              leftSection={<IconX size={14} />}
-              onClick={() => setConfirmAction('flush')}
-            >
-              {t('zoneTree.flush')}
-            </Button>
-          </Group>
-        </Group>
-
-        <Group align="end" wrap="wrap">
-          <TextInput
-            label={t('zoneTree.domain')}
-            placeholder={t('zoneTree.browsePlaceholder')}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') browseInput();
-            }}
-            w={320}
-          />
-          <Button onClick={browseInput}>{t('zoneTree.browse')}</Button>
+        </Stack>
+        <Group gap="xs">
+          <Button
+            variant="default"
+            leftSection={<IconRefresh size={16} />}
+            onClick={() => refetch()}
+            loading={isLoading}
+          >
+            {t('common.refresh')}
+          </Button>
+          <Button
+            variant="light"
+            color="red"
+            leftSection={<IconX size={16} />}
+            onClick={() => setConfirmAction('flush')}
+          >
+            {t('zoneTree.flush')}
+          </Button>
           {isZones && (
             <Button
-              leftSection={<IconPlus size={14} />}
+              leftSection={<IconPlus size={16} />}
               color={apiBase === 'allowed' ? 'teal' : 'orange'}
               onClick={handleAdd}
             >
@@ -689,7 +718,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
           {isZones && (
             <Button
               variant="default"
-              leftSection={<IconUpload size={14} />}
+              leftSection={<IconUpload size={16} />}
               onClick={() => setImportOpen(true)}
             >
               {t('common.import')}
@@ -698,262 +727,345 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
           {isZones && (
             <Button
               variant="default"
-              leftSection={<IconDownload size={14} />}
+              leftSection={<IconDownload size={16} />}
               onClick={handleExport}
             >
               {t('common.export')}
             </Button>
           )}
-          {currentDomain !== '' && (
-            <Button
-              color="red"
-              variant="light"
-              leftSection={<IconTrash size={14} />}
-              onClick={() => setConfirmAction('delete')}
-            >
-              {t('common.delete')}
-            </Button>
-          )}
         </Group>
-      </Paper>
+      </Group>
 
-      <Group align="start" gap="md">
-        <Paper shadow="sm" p="md" withBorder style={{ minWidth: 240 }}>
-          <Text fw={600} size="sm" mb="sm">
-            {t('zoneTree.subDomains')}
-          </Text>
-          {zones.length === 0 ? (
-            <Text c="dimmed" size="sm">
-              {t('zoneTree.noSubDomains')}
+      <Grid gutter="md" align="flex-start">
+        <Grid.Col span={{ base: 12, md: 4, lg: 3, xl: 2 }}>
+          <Paper shadow="xs" p="md" withBorder className={classes.zonePanel}>
+            <Text fw={600} size="sm" mb="sm">
+              {t('zoneTree.subDomains')}
             </Text>
-          ) : (
-            <Stack gap={4}>
-              {zones.map(zone => (
-                <Button
-                  key={zone}
-                  variant="subtle"
-                  size="xs"
-                  justify="flex-start"
-                  fullWidth
-                  rightSection={<IconChevronRight size={12} />}
-                  onClick={() => updateSearch({ domain: zone })}
-                >
-                  {zone}
-                </Button>
-              ))}
-            </Stack>
-          )}
-        </Paper>
-
-        <Paper shadow="sm" p="md" withBorder style={{ flex: 1, minWidth: 0 }}>
-          <Group justify="space-between" mb="md">
-            <Text fw={600}>
-              {displayDomain || t('zoneTree.root')}
-              <Text span size="sm" c="dimmed" ml={6}>
-                {t('zoneTree.recordCount', { count: records.length })}
+            <Group gap="xs" align="stretch" mb="sm" wrap="nowrap">
+              <TextInput
+                className={classes.browseInput}
+                placeholder={t('zoneTree.browsePlaceholder')}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') browseInput();
+                }}
+              />
+              <Button onClick={browseInput}>{t('zoneTree.browse')}</Button>
+            </Group>
+            {zones.length === 0 ? (
+              <Text c="dimmed" size="sm">
+                {t('zoneTree.noSubDomains')}
               </Text>
-            </Text>
-            <SegmentedControl
-              size="xs"
-              value={viewMode}
-              onChange={v => setViewMode((v || 'table') as 'table' | 'json')}
-              data={[
-                { value: 'table', label: t('common.table') },
-                { value: 'json', label: t('common.json') },
-              ]}
-            />
-          </Group>
+            ) : (
+              <ScrollArea.Autosize mah="calc(100vh - 300px)" type="auto" offsetScrollbars>
+                <Stack gap={2}>
+                  {zones.map(zone => (
+                    <Button
+                      key={zone}
+                      variant="subtle"
+                      size="xs"
+                      justify="flex-start"
+                      fullWidth
+                      rightSection={<IconChevronRight size={12} />}
+                      onClick={() => updateSearch({ domain: zone })}
+                    >
+                      {zone}
+                    </Button>
+                  ))}
+                </Stack>
+              </ScrollArea.Autosize>
+            )}
+          </Paper>
+        </Grid.Col>
 
-          {viewMode === 'json' ? (
-            isLoading ? (
+        <Grid.Col span={{ base: 12, md: 8, lg: 9, xl: 10 }} className={classes.recordsColumn}>
+          <Paper shadow="xs" p={{ base: 'sm', sm: 'md' }} withBorder>
+            <Group justify="space-between" mb="md" wrap="wrap" gap="xs">
+              <Text fw={600}>
+                {displayDomain || t('zoneTree.root')}
+                <Text span size="sm" c="dimmed" ml={6}>
+                  {t('zoneTree.recordCount', { count: records.length })}
+                </Text>
+              </Text>
+              <Group gap="xs">
+                {/* 删除当前域：删除整条记录，置于表格 | JSON 切换左侧，黄色警示 */}
+                {currentDomain !== '' && (
+                  <Button
+                    size="xs"
+                    color="yellow"
+                    variant="light"
+                    leftSection={<IconTrash size={14} />}
+                    onClick={() => setConfirmAction('delete')}
+                  >
+                    {t('common.delete')}
+                  </Button>
+                )}
+                <SegmentedControl
+                  size="xs"
+                  value={viewMode}
+                  onChange={v => setViewMode((v || 'table') as 'table' | 'json')}
+                  data={[
+                    { value: 'table', label: t('common.table') },
+                    { value: 'json', label: t('common.json') },
+                  ]}
+                />
+              </Group>
+            </Group>
+
+            {viewMode === 'json' ? (
+              isLoading ? (
+                <Stack gap="sm">
+                  <Skeleton height={36} />
+                  <Skeleton height={36} />
+                  <Skeleton height={36} />
+                </Stack>
+              ) : (
+                <CodeMirror
+                  // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
+                  key={isDark ? 'dark' : 'light'}
+                  value={JSON.stringify(records, null, 2)}
+                  readOnly
+                  height="600px"
+                  extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
+                  theme={isDark ? oneDark : codeMirrorLightTheme}
+                  basicSetup={{ lineNumbers: true, foldGutter: false }}
+                />
+              )
+            ) : isLoading ? (
               <Stack gap="sm">
                 <Skeleton height={36} />
                 <Skeleton height={36} />
                 <Skeleton height={36} />
               </Stack>
+            ) : isError ? (
+              <Center py="xl">
+                <Stack align="center">
+                  <Text c="dimmed">{t('zoneTree.browseFailed')}</Text>
+                  <Button variant="subtle" onClick={() => refetch()}>
+                    {t('error.retry')}
+                  </Button>
+                </Stack>
+              </Center>
+            ) : records.length === 0 ? (
+              <Center py="xl">
+                <Text c="dimmed">{t('zones.noRecords')}</Text>
+              </Center>
             ) : (
-              <CodeMirror
-                value={JSON.stringify(records, null, 2)}
-                readOnly
-                height="600px"
-                extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
-                theme={isDark ? oneDark : codeMirrorLightTheme}
-                basicSetup={{ lineNumbers: true, foldGutter: false }}
-              />
-            )
-          ) : isLoading ? (
-            <Stack gap="sm">
-              <Skeleton height={36} />
-              <Skeleton height={36} />
-              <Skeleton height={36} />
-            </Stack>
-          ) : isError ? (
-            <Center py="xl">
-              <Stack align="center">
-                <Text c="dimmed">{t('zoneTree.browseFailed')}</Text>
-                <Button variant="subtle" onClick={() => refetch()}>
-                  {t('error.retry')}
-                </Button>
-              </Stack>
-            </Center>
-          ) : records.length === 0 ? (
-            <Center py="xl">
-              <Text c="dimmed">{t('zones.noRecords')}</Text>
-            </Center>
-          ) : (
-            <>
-              <Table striped highlightOnHover layout="fixed">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
-                    <Table.Th style={{ width: 240 }}>{t('zones.recordName')}</Table.Th>
-                    <Table.Th style={{ width: 180 }}>{t('zones.recordTTL')}</Table.Th>
-                    <Table.Th>{t('zones.recordData')}</Table.Th>
-                    {hasStatusColumn && (
-                      <Table.Th style={{ width: 100 }}>{t('zones.recordStatus')}</Table.Th>
-                    )}
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {records.map((record, idx) => {
-                    const rowKey = `${record.name}-${record.type}-${idx}`;
-                    const isExpanded = expandedRow === rowKey;
-                    const recordFields = isExpanded ? flattenRecordFields(record, t) : EMPTY_FIELDS;
-                    return (
-                      <Fragment key={rowKey}>
-                        <Table.Tr>
-                          <Table.Td>
-                            <Badge
-                              color={RECORD_TYPE_COLORS[record.type] || 'gray'}
-                              variant="dot"
-                              size="sm"
-                              tt="none"
-                              style={dotBadgeStyle}
-                            >
-                              {record.type}
-                            </Badge>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm">{record.nameIdn || record.name}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm">{record.ttlString || record.ttl}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Group gap={6} wrap="nowrap" align="flex-start">
-                              <Box style={{ flex: 1, minWidth: 0 }}>
-                                <Text
-                                  size="sm"
-                                  style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-                                >
-                                  {formatRecordData(record, true)}
-                                </Text>
-                              </Box>
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="gray"
-                                aria-label={
-                                  isExpanded ? t('common.close') : t('common.viewDetails')
-                                }
-                                onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
-                              >
-                                {isExpanded ? (
-                                  <IconChevronUp size={14} />
-                                ) : (
-                                  <IconChevronDown size={14} />
-                                )}
-                              </ActionIcon>
-                            </Group>
-                          </Table.Td>
-                          {hasStatusColumn && (
-                            <Table.Td>
-                              {record.disabled ? (
-                                <Badge
-                                  color="gray"
-                                  size="sm"
-                                  variant="dot"
-                                  tt="none"
-                                  style={dotBadgeStyle}
-                                >
-                                  {t('common.disabled')}
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  color="green"
-                                  size="sm"
-                                  variant="dot"
-                                  tt="none"
-                                  style={dotBadgeStyle}
-                                >
-                                  {t('common.enabled')}
-                                </Badge>
-                              )}
-                            </Table.Td>
-                          )}
-                        </Table.Tr>
-                        {isExpanded && (
-                          <Table.Tr>
-                            <Table.Td
-                              colSpan={hasStatusColumn ? 5 : 4}
-                              style={{ backgroundColor: 'var(--mantine-color-body)' }}
-                            >
-                              <Stack gap="md">
-                                {/* 记录数据：标准 zone 文件格式，等宽代码块便于复制 */}
-                                <Box
-                                  p="sm"
-                                  style={{
-                                    fontFamily: 'var(--mantine-font-family-monospace)',
-                                    fontSize: 'var(--mantine-font-size-sm)',
-                                    lineHeight: 1.6,
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-all',
-                                    backgroundColor: 'var(--mantine-color-default-hover)',
-                                    border: '1px solid var(--mantine-color-default-border)',
-                                    borderRadius: 'var(--mantine-radius-md)',
-                                  }}
-                                >
-                                  {formatRecordData(record)}
-                                </Box>
-                                {recordFields.length > 0 && (
-                                  <>
-                                    <Divider />
-                                    <DataList size="sm" labelWidth={200} withDivider>
-                                      {recordFields.map(field => (
-                                        <DataList.Item key={field.label}>
-                                          <DataList.ItemLabel c="dimmed">
-                                            {field.label}
-                                          </DataList.ItemLabel>
-                                          <DataList.ItemValue>
-                                            <Text
-                                              size="sm"
-                                              style={{
-                                                fontFamily: 'var(--mantine-font-family-monospace)',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-all',
-                                              }}
-                                            >
-                                              {field.value}
-                                            </Text>
-                                          </DataList.ItemValue>
-                                        </DataList.Item>
-                                      ))}
-                                    </DataList>
-                                  </>
-                                )}
-                              </Stack>
-                            </Table.Td>
-                          </Table.Tr>
+              <>
+                <ScrollArea type="auto" offsetScrollbars>
+                  <Table striped highlightOnHover layout="fixed" miw={900}>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
+                        <Table.Th style={{ width: 240 }}>{t('zones.recordName')}</Table.Th>
+                        <Table.Th style={{ width: 180 }}>{t('zones.recordTTL')}</Table.Th>
+                        {hasDnsServerColumn && (
+                          <Table.Th style={{ width: 220 }}>{t('zoneTree.dnsServer')}</Table.Th>
                         )}
-                      </Fragment>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-            </>
-          )}
-        </Paper>
-      </Group>
+                        <Table.Th>{t('zones.recordData')}</Table.Th>
+                        {hasStatusColumn && (
+                          <Table.Th style={{ width: 100 }}>{t('zones.recordStatus')}</Table.Th>
+                        )}
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {records.map((record, idx) => {
+                        const rowKey = `${record.name}-${record.type}-${idx}`;
+                        const isExpanded = expandedRow === rowKey;
+                        const recordFields = isExpanded
+                          ? flattenRecordFields(record, t)
+                          : EMPTY_FIELDS;
+                        const metadataFields = isExpanded
+                          ? flattenMetadataFields(record, t)
+                          : EMPTY_FIELDS;
+                        return (
+                          <Fragment key={rowKey}>
+                            <Table.Tr>
+                              <Table.Td>
+                                <Badge
+                                  color={RECORD_TYPE_COLORS[record.type] || 'gray'}
+                                  variant="dot"
+                                  size="sm"
+                                  tt="none"
+                                  style={dotBadgeStyle}
+                                >
+                                  {record.type}
+                                </Badge>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="sm">{record.nameIdn || record.name}</Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="sm">{record.ttlString || record.ttl}</Text>
+                              </Table.Td>
+                              {hasDnsServerColumn && (
+                                <Table.Td>
+                                  {record.responseMetadata?.nameServer ? (
+                                    <Text size="sm" style={{ maxWidth: 220 }} truncate="end">
+                                      {record.responseMetadata.nameServer}
+                                    </Text>
+                                  ) : (
+                                    <Text size="sm" c="dimmed">
+                                      &mdash;
+                                    </Text>
+                                  )}
+                                </Table.Td>
+                              )}
+                              <Table.Td>
+                                <Group gap={6} wrap="nowrap" align="flex-start">
+                                  <Box style={{ flex: 1, minWidth: 0 }}>
+                                    <Text
+                                      size="sm"
+                                      truncate="end"
+                                      style={{ display: 'block' }}
+                                      title={formatRecordData(record, true)}
+                                    >
+                                      {formatRecordData(record, true)}
+                                    </Text>
+                                  </Box>
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="gray"
+                                    aria-label={
+                                      isExpanded ? t('common.close') : t('common.viewDetails')
+                                    }
+                                    onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
+                                  >
+                                    {isExpanded ? (
+                                      <IconChevronUp size={14} />
+                                    ) : (
+                                      <IconChevronDown size={14} />
+                                    )}
+                                  </ActionIcon>
+                                </Group>
+                              </Table.Td>
+                              {hasStatusColumn && (
+                                <Table.Td>
+                                  {record.disabled ? (
+                                    <Badge
+                                      color="gray"
+                                      size="sm"
+                                      variant="dot"
+                                      tt="none"
+                                      style={dotBadgeStyle}
+                                    >
+                                      {t('common.disabled')}
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      color="green"
+                                      size="sm"
+                                      variant="dot"
+                                      tt="none"
+                                      style={dotBadgeStyle}
+                                    >
+                                      {t('common.enabled')}
+                                    </Badge>
+                                  )}
+                                </Table.Td>
+                              )}
+                            </Table.Tr>
+                            {isExpanded && (
+                              <Table.Tr>
+                                <Table.Td
+                                  colSpan={
+                                    (hasStatusColumn ? 1 : 0) + (hasDnsServerColumn ? 1 : 0) + 4
+                                  }
+                                  style={{ backgroundColor: 'var(--mantine-color-body)' }}
+                                >
+                                  <Stack gap="md">
+                                    {/* 记录数据：标准 zone 文件格式，等宽代码块便于复制 */}
+                                    <Box
+                                      p="sm"
+                                      style={{
+                                        fontFamily: 'var(--mantine-font-family-monospace)',
+                                        fontSize: 'var(--mantine-font-size-sm)',
+                                        lineHeight: 1.6,
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-all',
+                                        backgroundColor: 'var(--mantine-color-default-hover)',
+                                        border: '1px solid var(--mantine-color-default-border)',
+                                        borderRadius: 'var(--mantine-radius-md)',
+                                      }}
+                                    >
+                                      {formatRecordData(record)}
+                                    </Box>
+                                    {recordFields.length > 0 && (
+                                      <>
+                                        <Divider />
+                                        <DataList size="sm" labelWidth={200} withDivider>
+                                          {recordFields.map(field => (
+                                            <DataList.Item key={field.label}>
+                                              <DataList.ItemLabel c="dimmed">
+                                                {field.label}
+                                              </DataList.ItemLabel>
+                                              <DataList.ItemValue>
+                                                <Text
+                                                  size="sm"
+                                                  style={{
+                                                    fontFamily:
+                                                      'var(--mantine-font-family-monospace)',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-all',
+                                                  }}
+                                                >
+                                                  {field.value}
+                                                </Text>
+                                              </DataList.ItemValue>
+                                            </DataList.Item>
+                                          ))}
+                                        </DataList>
+                                      </>
+                                    )}
+                                    {/* 响应/名称服务器元数据：缓存记录特有的上游性能信息，独立分组展示 */}
+                                    {metadataFields.length > 0 && (
+                                      <>
+                                        <Divider />
+                                        <Text size="xs" fw={500} c="dimmed">
+                                          {t('zoneTree.responseMetadataTitle')}
+                                        </Text>
+                                        <DataList size="sm" labelWidth={200} withDivider>
+                                          {metadataFields.map(field => (
+                                            <DataList.Item key={field.label}>
+                                              <DataList.ItemLabel c="dimmed">
+                                                {field.label}
+                                              </DataList.ItemLabel>
+                                              <DataList.ItemValue>
+                                                <Text
+                                                  size="sm"
+                                                  style={{
+                                                    fontFamily:
+                                                      'var(--mantine-font-family-monospace)',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-all',
+                                                  }}
+                                                >
+                                                  {field.value}
+                                                </Text>
+                                              </DataList.ItemValue>
+                                            </DataList.Item>
+                                          ))}
+                                        </DataList>
+                                      </>
+                                    )}
+                                  </Stack>
+                                </Table.Td>
+                              </Table.Tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </Table.Tbody>
+                  </Table>
+                </ScrollArea>
+              </>
+            )}
+          </Paper>
+        </Grid.Col>
+      </Grid>
 
       {/* 导入域名 */}
       <Modal
