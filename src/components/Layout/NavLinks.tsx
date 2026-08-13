@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Box, Divider, NavLink, Text } from '@mantine/core';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -96,7 +97,15 @@ const mainNavItems: NavItem[] = [
 
 const aboutNavItem: NavItem = { labelKey: 'nav.about', to: '/about', icon: IconInfoCircle };
 
-function AppNavLink({ item }: { item: NavItem }) {
+function AppNavLink({
+  item,
+  opened,
+  onToggle,
+}: {
+  item: NavItem;
+  opened: boolean;
+  onToggle: (opened: boolean) => void;
+}) {
   const { t } = useTranslation();
   const currentPath = useRouterState({ select: s => s.location.pathname });
 
@@ -120,7 +129,8 @@ function AppNavLink({ item }: { item: NavItem }) {
       className="app-nav-link"
       label={t(item.labelKey)}
       leftSection={<item.icon size={20} stroke={1.6} />}
-      defaultOpened={isActive}
+      opened={opened}
+      onChange={onToggle}
       active={isActive}
       mb={4}
     >
@@ -143,6 +153,7 @@ export function NavLinks() {
   const { t } = useTranslation();
   const session = useAtomValue(sessionAtom);
   const permissions = session?.permissions;
+  const currentPath = useRouterState({ select: s => s.location.pathname });
 
   // 按当前用户权限过滤菜单：无对应 section 查看权限的菜单不显示；
   // 会话缺少权限数据（旧会话）时全部显示，保证兼容
@@ -150,15 +161,31 @@ export function NavLinks() {
     item.section ? permissions?.[item.section]?.canView !== false : true
   );
 
+  // 子菜单标识：/settings/general → /settings（供受控展开状态使用）
+  const sectionKey = (to: string) => to.split('/').slice(0, 2).join('/');
+
+  // 手风琴：同一时刻只展开一个子菜单；初始展开当前所在菜单
+  const [openedSection, setOpenedSection] = useState<string | null>(() => {
+    const active = visibleItems.find(
+      item => item.children && currentPath.startsWith(sectionKey(item.to))
+    );
+    return active ? sectionKey(active.to) : null;
+  });
+
   return (
     <>
       {visibleItems.map(item => (
-        <AppNavLink key={item.to} item={item} />
+        <AppNavLink
+          key={item.to}
+          item={item}
+          opened={openedSection === sectionKey(item.to)}
+          onToggle={opened => setOpenedSection(opened ? sectionKey(item.to) : null)}
+        />
       ))}
 
       <Box mt="auto">
         <Divider my="sm" />
-        <AppNavLink item={aboutNavItem} />
+        <AppNavLink item={aboutNavItem} opened={false} onToggle={() => undefined} />
         <Text size="xs" c="dimmed" ta="center" mt="sm">
           {t('common.copyright', { year: new Date().getFullYear() })}
         </Text>
