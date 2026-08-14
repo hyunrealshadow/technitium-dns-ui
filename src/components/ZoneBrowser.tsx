@@ -935,10 +935,6 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                                     },
                                   ]
                                 : []),
-                              {
-                                label: t('zones.recordData'),
-                                value: formatRecordData(record) || '—',
-                              },
                               ...(hasStatusColumn
                                 ? [
                                     {
