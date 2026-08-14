@@ -30,5 +30,5 @@ export function getRecordTtlParts(ttl?: number | string | null, ttlString?: stri
 
 export function formatRecordTtl(ttl?: number | string | null, ttlString?: string | null) {
   const { value, friendly } = getRecordTtlParts(ttl, ttlString);
-  return friendly ? `${value}\n(${friendly})` : value;
+  return friendly ? `${value} (${friendly})` : value;
 }
