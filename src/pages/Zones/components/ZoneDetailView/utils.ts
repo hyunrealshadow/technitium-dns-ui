@@ -180,21 +180,3 @@ export function formatRecordName(record: ZoneRecord, zone: string): string {
   if (i > -1) return name.substring(0, i);
   return name;
 }
-
-export function formatRecordData(record: ZoneRecord): string {
-  const data = record.rData;
-  if (!data) return '';
-  if (data.ipAddress) return data.ipAddress as string;
-  if (data.cname) return data.cname as string;
-  if (data.nameServer) return data.nameServer as string;
-  if (data.text) return (data.text as string).substring(0, 100);
-  if (data.exchange) return `[${data.preference}] ${data.exchange}`;
-  if (data.target) return `[${data.priority}|${data.weight}|${data.port}] ${data.target}`;
-  if (data.ptrName) return data.ptrName as string;
-  if (data.primaryNameServer) return data.primaryNameServer as string;
-  if (data.dname) return data.dname as string;
-  if (data.aname) return data.aname as string;
-  if (data.forwarder) return data.forwarder as string;
-  if (data.classPath) return data.classPath as string;
-  return JSON.stringify(data);
-}

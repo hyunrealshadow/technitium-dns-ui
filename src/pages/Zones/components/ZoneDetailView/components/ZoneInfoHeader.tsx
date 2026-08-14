@@ -151,7 +151,7 @@ export function ZoneInfoHeader({
             )}
           </Stack>
 
-          <Group gap="sm" wrap="wrap">
+          <Group gap="xs" wrap="wrap">
             {canAddRecord(isInternal, zoneType) && (
               <Button leftSection={<IconPlus size={14} />} size="sm" onClick={onAddRecord}>
                 {t('zones.add')}
@@ -164,7 +164,8 @@ export function ZoneInfoHeader({
                   <Button
                     leftSection={<IconCheck size={14} />}
                     size="sm"
-                    variant="default"
+                    variant="light"
+                    color="green"
                     onClick={onEnable}
                   >
                     {t('zones.enable')}
@@ -173,7 +174,8 @@ export function ZoneInfoHeader({
                   <Button
                     leftSection={<IconX size={14} />}
                     size="sm"
-                    color="yellow"
+                    variant="light"
+                    color="orange"
                     onClick={onDisable}
                   >
                     {t('zones.disable')}
@@ -183,14 +185,21 @@ export function ZoneInfoHeader({
             )}
 
             {canResync(zoneType) && (
-              <Button leftSection={<IconRefresh size={14} />} size="sm" onClick={onResync}>
+              <Button
+                leftSection={<IconRefresh size={14} />}
+                size="sm"
+                variant="default"
+                onClick={onResync}
+              >
                 {t('zones.resync')}
               </Button>
             )}
 
             <Menu shadow="md">
               <Menu.Target>
-                <Button size="sm">{t('zones.options')}</Button>
+                <Button size="sm" variant="default">
+                  {t('zones.options')}
+                </Button>
               </Menu.Target>
               <Menu.Dropdown>
                 {canImport(zoneType) && (
@@ -212,13 +221,13 @@ export function ZoneInfoHeader({
             </Menu>
 
             {!isInternal && (
-              <Button size="sm" onClick={onPermissions}>
+              <Button size="sm" variant="default" onClick={onPermissions}>
                 {t('zones.permissions')}
               </Button>
             )}
 
             {zoneType === 'Primary' && !dnssecStatus && (
-              <Button size="sm" onClick={onSign}>
+              <Button size="sm" variant="default" onClick={onSign}>
                 {t('zones.signZone')}
               </Button>
             )}
@@ -226,7 +235,9 @@ export function ZoneInfoHeader({
             {(zoneType === 'Primary' || zoneType === 'Secondary') && dnssecStatus && (
               <Menu shadow="md">
                 <Menu.Target>
-                  <Button size="sm">{t('zones.dnssec')}</Button>
+                  <Button size="sm" variant="default">
+                    {t('zones.dnssec')}
+                  </Button>
                 </Menu.Target>
                 <Menu.Dropdown>
                   {hideDnssecRecords ? (
@@ -251,7 +262,7 @@ export function ZoneInfoHeader({
             )}
 
             {!isInternal && (
-              <Button size="sm" color="red" onClick={onDelete}>
+              <Button size="sm" variant="light" color="red" onClick={onDelete}>
                 {t('common.delete')}
               </Button>
             )}

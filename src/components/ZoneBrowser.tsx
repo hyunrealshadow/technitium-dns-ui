@@ -7,8 +7,6 @@ import {
   Breadcrumbs,
   Button,
   Center,
-  DataList,
-  Divider,
   Grid,
   Group,
   Modal,
@@ -43,6 +41,8 @@ import { success, error } from './notifications';
 import { apiClient } from '../api/client';
 import { colorModeAtom, resolveColorMode } from '../store/theme';
 import { formatDateTime } from '../utils/dateTime';
+import { RecordTtl } from './RecordTtl';
+import { formatRecordTtl } from './RecordTtl.utils';
 import type { ZoneBrowserSearch } from './ZoneBrowser.schema';
 import { LazyCodeEditor } from './LazyCodeEditor';
 import classes from './ZoneBrowser.module.css';
@@ -292,6 +292,7 @@ const RDATA_FIELD_LABEL_KEYS: Record<string, string> = {
   keyTag: 'keyTag',
   algorithm: 'algorithm',
   digestType: 'digestType',
+  digestTypeNumber: 'digestTypeNumber',
   digest: 'digest',
   salt: 'salt',
   iterations: 'iterations',
@@ -461,6 +462,37 @@ function flattenMetadataFields(record: ZoneBrowserRecord, t: TFunction): RecordF
   if (record.nameServerMetadata) pushSub(record.nameServerMetadata);
 
   return fields;
+}
+
+function RecordDetailsList({
+  sections,
+}: {
+  sections: Array<{ title: string; fields: RecordField[] }>;
+}) {
+  return (
+    <Box className={classes.detailsList}>
+      {sections.map(section => (
+        <Box key={section.title} className={classes.detailsSection}>
+          <Text className={classes.detailsSectionTitle}>{section.title}</Text>
+          {section.fields.map((field, index) => {
+            const isLong = field.value.length > 160 || field.value.includes('\n');
+            return (
+              <Box className={classes.detailsRow} key={`${field.label}-${index}`}>
+                <Text size="sm" c="dimmed" className={classes.detailsLabel}>
+                  {field.label}
+                </Text>
+                <Box
+                  className={`${classes.detailsValue} ${isLong ? classes.detailsLongValue : ''}`}
+                >
+                  {field.value || '—'}
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      ))}
+    </Box>
+  );
 }
 
 export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
@@ -859,7 +891,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
             ) : (
               <>
                 <ScrollArea type="auto" offsetScrollbars>
-                  <Table striped highlightOnHover layout="fixed" miw={900}>
+                  <Table highlightOnHover layout="fixed" miw={900}>
                     <Table.Thead>
                       <Table.Tr>
                         <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
@@ -884,6 +916,39 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                         const metadataFields = isExpanded
                           ? flattenMetadataFields(record, t)
                           : EMPTY_FIELDS;
+                        const overviewFields: RecordField[] = isExpanded
+                          ? [
+                              { label: t('zones.recordType'), value: record.type },
+                              {
+                                label: t('zones.recordName'),
+                                value: record.nameIdn || record.name || '—',
+                              },
+                              {
+                                label: t('zones.recordTTL'),
+                                value: formatRecordTtl(record.ttl, record.ttlString),
+                              },
+                              ...(hasDnsServerColumn
+                                ? [
+                                    {
+                                      label: t('zoneTree.dnsServer'),
+                                      value: record.responseMetadata?.nameServer || '—',
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: t('zones.recordData'),
+                                value: formatRecordData(record) || '—',
+                              },
+                              ...(hasStatusColumn
+                                ? [
+                                    {
+                                      label: t('zones.recordStatus'),
+                                      value: record.disabled ? 'Disabled' : 'Enabled',
+                                    },
+                                  ]
+                                : []),
+                            ]
+                          : EMPTY_FIELDS;
                         return (
                           <Fragment key={rowKey}>
                             <Table.Tr>
@@ -902,7 +967,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                                 <Text size="sm">{record.nameIdn || record.name}</Text>
                               </Table.Td>
                               <Table.Td>
-                                <Text size="sm">{record.ttlString || record.ttl}</Text>
+                                <RecordTtl ttl={record.ttl} ttlString={record.ttlString} />
                               </Table.Td>
                               {hasDnsServerColumn && (
                                 <Table.Td>
@@ -978,84 +1043,25 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                                   colSpan={
                                     (hasStatusColumn ? 1 : 0) + (hasDnsServerColumn ? 1 : 0) + 4
                                   }
-                                  style={{ backgroundColor: 'var(--mantine-color-body)' }}
+                                  p="md"
+                                  style={{ backgroundColor: 'var(--mantine-color-default-hover)' }}
                                 >
-                                  <Stack gap="md">
-                                    {/* 记录数据：标准 zone 文件格式，等宽代码块便于复制 */}
-                                    <Box
-                                      p="sm"
-                                      style={{
-                                        fontFamily: 'var(--mantine-font-family-monospace)',
-                                        fontSize: 'var(--mantine-font-size-sm)',
-                                        lineHeight: 1.6,
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-all',
-                                        backgroundColor: 'var(--mantine-color-default-hover)',
-                                        border: '1px solid var(--mantine-color-default-border)',
-                                        borderRadius: 'var(--mantine-radius-md)',
-                                      }}
-                                    >
-                                      {formatRecordData(record)}
-                                    </Box>
-                                    {recordFields.length > 0 && (
-                                      <>
-                                        <Divider />
-                                        <DataList size="sm" labelWidth={200} withDivider>
-                                          {recordFields.map(field => (
-                                            <DataList.Item key={field.label}>
-                                              <DataList.ItemLabel c="dimmed">
-                                                {field.label}
-                                              </DataList.ItemLabel>
-                                              <DataList.ItemValue>
-                                                <Text
-                                                  size="sm"
-                                                  style={{
-                                                    fontFamily:
-                                                      'var(--mantine-font-family-monospace)',
-                                                    whiteSpace: 'pre-wrap',
-                                                    wordBreak: 'break-all',
-                                                  }}
-                                                >
-                                                  {field.value}
-                                                </Text>
-                                              </DataList.ItemValue>
-                                            </DataList.Item>
-                                          ))}
-                                        </DataList>
-                                      </>
-                                    )}
-                                    {/* 响应/名称服务器元数据：缓存记录特有的上游性能信息，独立分组展示 */}
-                                    {metadataFields.length > 0 && (
-                                      <>
-                                        <Divider />
-                                        <Text size="xs" fw={500} c="dimmed">
-                                          {t('zoneTree.responseMetadataTitle')}
-                                        </Text>
-                                        <DataList size="sm" labelWidth={200} withDivider>
-                                          {metadataFields.map(field => (
-                                            <DataList.Item key={field.label}>
-                                              <DataList.ItemLabel c="dimmed">
-                                                {field.label}
-                                              </DataList.ItemLabel>
-                                              <DataList.ItemValue>
-                                                <Text
-                                                  size="sm"
-                                                  style={{
-                                                    fontFamily:
-                                                      'var(--mantine-font-family-monospace)',
-                                                    whiteSpace: 'pre-wrap',
-                                                    wordBreak: 'break-all',
-                                                  }}
-                                                >
-                                                  {field.value}
-                                                </Text>
-                                              </DataList.ItemValue>
-                                            </DataList.Item>
-                                          ))}
-                                        </DataList>
-                                      </>
-                                    )}
-                                  </Stack>
+                                  <RecordDetailsList
+                                    sections={[
+                                      {
+                                        title: t('common.details'),
+                                        fields: [...overviewFields, ...recordFields],
+                                      },
+                                      ...(metadataFields.length > 0
+                                        ? [
+                                            {
+                                              title: t('zoneTree.responseMetadataTitle'),
+                                              fields: metadataFields,
+                                            },
+                                          ]
+                                        : []),
+                                    ]}
+                                  />
                                 </Table.Td>
                               </Table.Tr>
                             )}

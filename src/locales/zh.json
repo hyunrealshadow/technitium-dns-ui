@@ -31,6 +31,7 @@
     "password": "密码",
     "enabled": "已启用",
     "disabled": "已禁用",
+    "details": "详细信息",
     "viewDetails": "查看详情",
     "remove": "移除",
     "select": "选择",
@@ -683,6 +684,7 @@
       "keyTag": "密钥标签",
       "algorithm": "算法",
       "digestType": "摘要类型",
+      "digestTypeNumber": "摘要类型编号",
       "digest": "摘要",
       "salt": "盐",
       "iterations": "迭代次数",
@@ -744,7 +746,14 @@
       "nextDomainName": "下一个域名",
       "nextHashedOwnerName": "下一个哈希所有者名称",
       "hashAlgorithm": "哈希算法",
-      "types": "类型"
+      "types": "类型",
+      "useSerialDateScheme": "使用序列日期方案",
+      "scheme": "方案",
+      "autoIpv4Hint": "使用自动 IPv4 提示",
+      "autoIpv6Hint": "使用自动 IPv6 提示",
+      "computedDigests": "计算摘要",
+      "alias": "别名",
+      "expiresOn": "过期时间"
     },
     "dnsServer": "DNS 服务器",
     "responseMetadataTitle": "响应元数据"

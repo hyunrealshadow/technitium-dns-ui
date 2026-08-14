@@ -59,6 +59,11 @@ export interface ZoneRecord {
   ttlString: string;
   disabled: boolean;
   comments?: string;
+  expiryTtl?: number;
+  expiryTtlString?: string;
+  lastUsedOn?: string;
+  lastModified?: string;
+  glueRecords?: string[];
   rData: Record<string, unknown>;
 }
 

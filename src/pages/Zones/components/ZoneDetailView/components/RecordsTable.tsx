@@ -13,8 +13,10 @@ import {
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { RecordTtl } from '../../../../../components/RecordTtl';
 import type { ZoneRecord } from '../../../types';
-import { formatRecordData, formatRecordName, RECORD_TYPE_COLORS } from '../utils';
+import { formatRecordName, RECORD_TYPE_COLORS } from '../utils';
+import { RecordDataCell } from './RecordDataCell';
 
 // 记录表格：搜索/类型过滤/分页与行内操作
 export function RecordsTable({
@@ -125,105 +127,122 @@ export function RecordsTable({
               />
             )}
           </Group>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th style={{ width: 50 }}>#</Table.Th>
-                <Table.Th>{t('zones.recordName')}</Table.Th>
-                <Table.Th>{t('zones.recordType')}</Table.Th>
-                <Table.Th>{t('zones.recordTTL')}</Table.Th>
-                <Table.Th>{t('zones.recordData')}</Table.Th>
-                <Table.Th>{t('zones.recordStatus')}</Table.Th>
-                <Table.Th style={{ minWidth: 220 }}></Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {paginatedRecords.map((record, idx) => (
-                <Table.Tr key={`${record.name}-${record.type}-${idx}`}>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {(currentPage - 1) * recordsPerPage + idx + 1}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" style={{ maxWidth: 280 }} truncate="end">
-                      {formatRecordName(record, zone)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge
-                      color={RECORD_TYPE_COLORS[record.type] || 'gray'}
-                      variant="dot"
-                      size="sm"
-                      tt="none"
-                      style={dotBadgeStyle}
-                    >
-                      {record.type}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{record.ttlString || record.ttl}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" style={{ maxWidth: 400 }} truncate="end">
-                      {formatRecordData(record)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {record.disabled ? (
-                      <Badge color="gray" size="sm" variant="dot" tt="none" style={dotBadgeStyle}>
-                        {t('common.disabled')}
-                      </Badge>
-                    ) : (
-                      <Badge color="green" size="sm" variant="dot" tt="none" style={dotBadgeStyle}>
-                        {t('common.enabled')}
-                      </Badge>
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    {hideActions(record) ? (
-                      <Text size="sm" c="dimmed">
-                        &nbsp;
-                      </Text>
-                    ) : (
-                      <Group gap={4} wrap="nowrap">
-                        <Button size="xs" onClick={() => onEdit(record)}>
-                          {t('common.edit')}
-                        </Button>
-                        {record.disabled ? (
-                          <Button
-                            size="xs"
-                            variant="default"
-                            onClick={() => onToggleState(record, false)}
-                            disabled={disableStateButtons(record)}
-                          >
-                            {t('zones.enable')}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="xs"
-                            color="yellow"
-                            onClick={() => onToggleState(record, true)}
-                            disabled={disableStateButtons(record)}
-                          >
-                            {t('zones.disable')}
-                          </Button>
-                        )}
-                        <Button
-                          size="xs"
-                          color="red"
-                          onClick={() => onDelete(record)}
-                          disabled={disableStateButtons(record)}
-                        >
-                          {t('common.delete')}
-                        </Button>
-                      </Group>
-                    )}
-                  </Table.Td>
+          <Table.ScrollContainer minWidth={1100}>
+            <Table highlightOnHover verticalSpacing="sm">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ width: 50 }}>#</Table.Th>
+                  <Table.Th style={{ width: 220 }}>{t('zones.recordName')}</Table.Th>
+                  <Table.Th style={{ width: 110 }}>{t('zones.recordType')}</Table.Th>
+                  <Table.Th style={{ width: 110 }}>{t('zones.recordTTL')}</Table.Th>
+                  <Table.Th>{t('zones.recordData')}</Table.Th>
+                  <Table.Th style={{ width: 110 }}>{t('zones.recordStatus')}</Table.Th>
+                  <Table.Th style={{ width: 220 }}></Table.Th>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {paginatedRecords.map((record, idx) => (
+                  <Table.Tr
+                    key={`${record.name}-${record.type}-${idx}`}
+                    style={{ verticalAlign: 'top' }}
+                  >
+                    <Table.Td>
+                      <Text size="sm" c="dimmed">
+                        {(currentPage - 1) * recordsPerPage + idx + 1}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
+                        {formatRecordName(record, zone)}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Badge
+                        color={RECORD_TYPE_COLORS[record.type] || 'gray'}
+                        variant="dot"
+                        size="sm"
+                        tt="none"
+                        style={dotBadgeStyle}
+                      >
+                        {record.type}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      <RecordTtl ttl={record.ttl} ttlString={record.ttlString} />
+                    </Table.Td>
+                    <Table.Td>
+                      <RecordDataCell record={record} />
+                    </Table.Td>
+                    <Table.Td>
+                      {record.disabled ? (
+                        <Badge color="gray" size="sm" variant="dot" tt="none" style={dotBadgeStyle}>
+                          {t('common.disabled')}
+                        </Badge>
+                      ) : (
+                        <Badge
+                          color="green"
+                          size="sm"
+                          variant="dot"
+                          tt="none"
+                          style={dotBadgeStyle}
+                        >
+                          {t('common.enabled')}
+                        </Badge>
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      {hideActions(record) ? (
+                        <Text size="sm" c="dimmed">
+                          &nbsp;
+                        </Text>
+                      ) : (
+                        <Group gap={5} wrap="nowrap" justify="flex-end">
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="blue"
+                            onClick={() => onEdit(record)}
+                          >
+                            {t('common.edit')}
+                          </Button>
+                          {record.disabled ? (
+                            <Button
+                              size="xs"
+                              variant="light"
+                              color="green"
+                              onClick={() => onToggleState(record, false)}
+                              disabled={disableStateButtons(record)}
+                            >
+                              {t('zones.enable')}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="xs"
+                              variant="light"
+                              color="orange"
+                              onClick={() => onToggleState(record, true)}
+                              disabled={disableStateButtons(record)}
+                            >
+                              {t('zones.disable')}
+                            </Button>
+                          )}
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="red"
+                            onClick={() => onDelete(record)}
+                            disabled={disableStateButtons(record)}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </Group>
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
 
           {totalPages > 1 && (
             <Group justify="space-between" mt="md">

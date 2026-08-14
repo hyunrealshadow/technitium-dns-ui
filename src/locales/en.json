@@ -31,6 +31,7 @@
     "password": "Password",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "details": "Details",
     "viewDetails": "View Details",
     "remove": "Remove",
     "select": "Select",
@@ -683,6 +684,7 @@
       "keyTag": "Key Tag",
       "algorithm": "Algorithm",
       "digestType": "Digest Type",
+      "digestTypeNumber": "Digest Type Number",
       "digest": "Digest",
       "salt": "Salt",
       "iterations": "Iterations",
@@ -744,7 +746,14 @@
       "nextDomainName": "Next Domain Name",
       "nextHashedOwnerName": "Next Hashed Owner Name",
       "hashAlgorithm": "Hash Algorithm",
-      "types": "Types"
+      "types": "Types",
+      "useSerialDateScheme": "Use Serial Date Scheme",
+      "scheme": "Scheme",
+      "autoIpv4Hint": "Use Automatic IPv4 Hint",
+      "autoIpv6Hint": "Use Automatic IPv6 Hint",
+      "computedDigests": "Computed Digests",
+      "alias": "Alias",
+      "expiresOn": "Expires On"
     },
     "dnsServer": "DNS Server",
     "responseMetadataTitle": "Response Metadata"

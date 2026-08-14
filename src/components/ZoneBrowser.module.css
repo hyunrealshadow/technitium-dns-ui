@@ -12,6 +12,71 @@
   min-width: 0;
 }
 
+.detailsList {
+  overflow: hidden;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.detailsSection + .detailsSection {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.detailsSectionTitle {
+  padding: 0.45rem 0.75rem;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  background: var(--mantine-color-default-hover);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.detailsRow {
+  display: grid;
+  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.detailsRow + .detailsRow {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.detailsLabel,
+.detailsValue {
+  padding: 0.55rem 0.75rem;
+}
+
+.detailsValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.5;
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.detailsLongValue {
+  max-height: 18rem;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 36em) {
+  .detailsRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailsLabel {
+    padding-bottom: 0.1rem;
+  }
+
+  .detailsValue {
+    padding-top: 0.2rem;
+    border-left: 0;
+  }
+}
+
 @media (min-width: 62em) {
   .zonePanel {
     position: sticky;
