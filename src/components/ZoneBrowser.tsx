@@ -47,11 +47,11 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useAtom } from 'jotai';
-import { z } from 'zod';
 import { success, error } from './notifications';
 import { apiClient } from '../api/client';
 import { colorModeAtom, resolveColorMode } from '../store/theme';
 import { formatDateTime } from '../utils/dateTime';
+import type { ZoneBrowserSearch } from './ZoneBrowser.schema';
 import classes from './ZoneBrowser.module.css';
 
 type ApiBase = 'cache' | 'allowed' | 'blocked';
@@ -87,13 +87,6 @@ interface ZoneBrowserResponse {
   zones: string[];
   records: ZoneBrowserRecord[];
 }
-
-// 路由 search 参数：当前浏览域
-export const ZoneBrowserSearchSchema = z.object({
-  domain: z.string().optional(),
-});
-
-export type ZoneBrowserSearch = z.infer<typeof ZoneBrowserSearchSchema>;
 
 const RECORD_TYPE_COLORS: Record<string, string> = {
   A: 'blue',

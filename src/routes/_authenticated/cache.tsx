@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ZoneBrowser, ZoneBrowserSearchSchema } from '../../components/ZoneBrowser';
+import { ZoneBrowser } from '../../components/ZoneBrowser';
+import { ZoneBrowserSearchSchema } from '../../components/ZoneBrowser.schema';
 
 function CachePage() {
   return <ZoneBrowser apiBase="cache" />;
