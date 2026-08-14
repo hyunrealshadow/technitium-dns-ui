@@ -26,7 +26,7 @@ import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import { getRcodeColor } from '../../../utils/rcode';
 import type { QueryLogEntry, QueryLogsResponse } from '../types';
 import { PROTOCOLS, RESPONSE_TYPES, RCODES, QCLASSES } from '../constants';
-import { getRowColor } from '../utils';
+import { getQueryLogRowTone } from '../utils';
 import { formatDateTime } from '../../../utils/dateTime';
 
 export function QueryLogsTab({
@@ -221,7 +221,7 @@ export function QueryLogsTab({
 
   return (
     <Stack mt="md">
-      <Paper shadow="sm" p="md" withBorder>
+      <Paper className="query-logs-filter" shadow="sm" p="md" withBorder>
         <Group gap="sm" align="end" wrap="wrap">
           {appSelectionLoading ? (
             <>
@@ -401,7 +401,7 @@ export function QueryLogsTab({
       </Paper>
 
       {entries.length > 0 && (
-        <Paper shadow="sm" p="md" withBorder>
+        <Paper className="query-logs-results" shadow="sm" p="md" withBorder>
           <Group justify="space-between" mb="sm">
             <Text size="sm">
               {t('logs.summary', {
@@ -424,7 +424,7 @@ export function QueryLogsTab({
             )}
           </Group>
           <Table.ScrollContainer minWidth={1100}>
-            <Table striped highlightOnHover>
+            <Table className="query-logs-table" striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>#</Table.Th>
@@ -442,10 +442,7 @@ export function QueryLogsTab({
               </Table.Thead>
               <Table.Tbody>
                 {entries.map(entry => (
-                  <Table.Tr
-                    key={entry.rowNumber}
-                    style={getRowColor(entry) ? { backgroundColor: getRowColor(entry) } : undefined}
-                  >
+                  <Table.Tr key={entry.rowNumber} data-tone={getQueryLogRowTone(entry)}>
                     <Table.Td>{entry.rowNumber}</Table.Td>
                     <Table.Td>
                       <Text size="sm">{formatDateTime(entry.timestamp)}</Text>

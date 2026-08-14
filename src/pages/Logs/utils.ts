@@ -1,34 +1,42 @@
 import type { QueryLogEntry } from './types';
 
-export function getRowColor(entry: QueryLogEntry): string | undefined {
-  // 只保留轻微分类提示，避免数据密集时整张表形成大面积彩色条纹。
-  const tint = (color: string) =>
-    `color-mix(in srgb, var(--mantine-color-${color}-6) 3.5%, transparent)`;
+export type QueryLogRowTone =
+  | 'server-failure'
+  | 'nx-domain'
+  | 'refused'
+  | 'authoritative'
+  | 'recursive'
+  | 'cached'
+  | 'blocked';
+
+/**
+ * Match the legacy console's row-color priority while exposing semantic tones
+ * that can be adapted independently for light and dark themes.
+ */
+export function getQueryLogRowTone(entry: QueryLogEntry): QueryLogRowTone | undefined {
   switch (entry.rcode.toLowerCase()) {
     case 'serverfailure':
-      return tint('red');
+      return 'server-failure';
     case 'nxdomain':
-      if (
-        ['blocked', 'upstreamblocked', 'upstreamblockedcached'].includes(
-          entry.responseType.toLowerCase()
-        )
+      return ['blocked', 'upstreamblocked', 'upstreamblockedcached'].includes(
+        entry.responseType.toLowerCase()
       )
-        return tint('orange');
-      return tint('gray');
+        ? 'blocked'
+        : 'nx-domain';
     case 'refused':
-      return tint('cyan');
+      return 'refused';
     default:
       switch (entry.responseType.toLowerCase()) {
         case 'authoritative':
-          return tint('yellow');
+          return 'authoritative';
         case 'recursive':
-          return tint('cyan');
+          return 'recursive';
         case 'cached':
-          return tint('grape');
+          return 'cached';
         case 'blocked':
         case 'upstreamblocked':
         case 'upstreamblockedcached':
-          return tint('orange');
+          return 'blocked';
         default:
           return undefined;
       }

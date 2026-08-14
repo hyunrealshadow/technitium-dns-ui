@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Modal, Stack } from '@mantine/core';
 import CodeMirror from '@uiw/react-codemirror';
-import { json } from '@codemirror/lang-json';
+import { jsonc } from '@platformos/lang-jsonc';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
@@ -81,7 +81,7 @@ export function AppConfigModal({
           value={configText}
           onChange={setConfigText}
           height="400px"
-          extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
+          extensions={[jsonc(), codeMirrorFontTheme, foldGutterExtension]}
           theme={isDark ? oneDark : codeMirrorLightTheme}
           basicSetup={{
             lineNumbers: true,

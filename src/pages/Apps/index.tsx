@@ -33,6 +33,19 @@ import { AppStoreModal } from './components/AppStoreModal';
 import { AppConfigModal } from './components/AppConfigModal';
 import { PageHeader } from '../../components/PageHeader';
 
+const APP_SKELETON_PROFILES = [
+  { titleWidth: 92, paragraphs: [['92%', '68%']] },
+  { titleWidth: 190, paragraphs: [] },
+  {
+    titleWidth: 180,
+    paragraphs: [
+      ['92%', '78%'],
+      ['88%', '72%'],
+      ['90%', '82%'],
+    ],
+  },
+] as const;
+
 export function AppsPage() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -190,67 +203,96 @@ export function AppsPage() {
     }
   };
 
+  const pageHeader = (
+    <PageHeader
+      title={t('nav.apps')}
+      actions={
+        <>
+          <Button
+            size="xs"
+            leftSection={<IconPlus size={15} />}
+            disabled={loading}
+            onClick={() => setStoreOpen(true)}
+          >
+            {t('apps.appStore')}
+          </Button>
+          <Button
+            size="xs"
+            leftSection={<IconDownload size={15} />}
+            disabled={loading}
+            onClick={() => setInstallOpen(true)}
+          >
+            {t('apps.install')}
+          </Button>
+          <Button
+            size="xs"
+            leftSection={<IconRefresh size={15} />}
+            disabled={loading}
+            onClick={() => fetchApps()}
+          >
+            {t('common.refresh')}
+          </Button>
+        </>
+      }
+    />
+  );
+
   if (loading) {
     return (
-      <Stack>
-        <Group justify="space-between">
-          <Skeleton height={34} width={140} />
-          <Group>
-            <Skeleton height={36} width={110} />
-            <Skeleton height={36} width={90} />
-            <Skeleton height={36} width={90} />
-          </Group>
-        </Group>
-        <Stack gap="sm" mt="md">
-          <Paper shadow="sm" p="md" withBorder>
-            <Skeleton height={22} width={180} />
-            <Skeleton height={14} width={120} mt={10} />
-            <Skeleton height={14} mt={16} />
-            <Skeleton height={14} mt={6} />
-          </Paper>
-          <Paper shadow="sm" p="md" withBorder>
-            <Skeleton height={22} width={160} />
-            <Skeleton height={14} width={110} mt={10} />
-            <Skeleton height={14} mt={16} />
-          </Paper>
-          <Paper shadow="sm" p="md" withBorder>
-            <Skeleton height={22} width={200} />
-            <Skeleton height={14} width={130} mt={10} />
-            <Skeleton height={14} mt={16} />
-            <Skeleton height={14} mt={6} />
-            <Skeleton height={14} mt={6} />
-          </Paper>
-        </Stack>
+      <Stack maw={1440} mx="auto" w="100%">
+        {pageHeader}
+        <Paper shadow="sm" p={0} withBorder aria-busy="true">
+          <Stack gap={0}>
+            <Text
+              fw={600}
+              p="md"
+              style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
+            >
+              {t('apps.installedApps')}
+            </Text>
+            {APP_SKELETON_PROFILES.map((profile, index) => (
+              <Fragment key={index}>
+                {index > 0 && <Divider />}
+                <Box className="app-list-item" p={{ base: 'md', sm: 'lg' }}>
+                  <Grid gap={{ base: 'md', sm: 'xl' }}>
+                    <Grid.Col span={{ base: 12, sm: 9, xl: 10 }}>
+                      <Skeleton height={22} width={profile.titleWidth} />
+                      <Skeleton height={20} width={72} mt={6} radius="sm" />
+                      {profile.paragraphs.map((lines, paragraphIndex) => (
+                        <Stack key={paragraphIndex} gap={6} mt={paragraphIndex === 0 ? 10 : 16}>
+                          {lines.map((width, lineIndex) => (
+                            <Skeleton key={lineIndex} height={12} width={width} />
+                          ))}
+                        </Stack>
+                      ))}
+                      <Group gap={8} mt="xs">
+                        <Skeleton height={14} width={14} radius="sm" />
+                        <Skeleton height={14} width={76} />
+                      </Group>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 3, xl: 2 }}>
+                      <Group className="app-item-actions" gap={6}>
+                        <Skeleton height={30} radius="md" />
+                        <Skeleton height={30} radius="md" />
+                        <Skeleton height={30} radius="md" />
+                      </Group>
+                    </Grid.Col>
+                  </Grid>
+                </Box>
+              </Fragment>
+            ))}
+          </Stack>
+          <Box p="md">
+            <Skeleton height={14} width={96} />
+          </Box>
+        </Paper>
       </Stack>
     );
   }
 
   return (
     <Stack maw={1440} mx="auto" w="100%">
-      <PageHeader
-        title={t('nav.apps')}
-        actions={
-          <>
-            <Button
-              size="xs"
-              leftSection={<IconPlus size={15} />}
-              onClick={() => setStoreOpen(true)}
-            >
-              {t('apps.appStore')}
-            </Button>
-            <Button
-              size="xs"
-              leftSection={<IconDownload size={15} />}
-              onClick={() => setInstallOpen(true)}
-            >
-              {t('apps.install')}
-            </Button>
-            <Button size="xs" leftSection={<IconRefresh size={15} />} onClick={() => fetchApps()}>
-              {t('common.refresh')}
-            </Button>
-          </>
-        }
-      />
+      {pageHeader}
 
       {apps.length === 0 ? (
         <Paper shadow="sm" p="xl" withBorder>

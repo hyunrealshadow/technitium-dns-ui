@@ -35,6 +35,14 @@ export const codeMirrorFontTheme = EditorView.theme({
     padding: '0 4px',
     margin: '0 2px',
   },
+  '.cm-logStackPlaceholder': {
+    cursor: 'pointer',
+    fontStyle: 'italic',
+    userSelect: 'none',
+  },
+  '.cm-logStackPlaceholder:hover': {
+    color: 'var(--mantine-color-text)',
+  },
 });
 
 // 自定义折叠箭头：SVG chevron（替代默认字符图标），颜色继承 currentColor 随主题

@@ -1066,6 +1066,8 @@
     "noLogFileFound": "No Log File Was Found",
     "download": "Download",
     "selectLogFile": "Select a log file to view.",
+    "exceptionDetails": "… Exception details · {{count}} stack frames",
+    "stackFrames": "… {{count}} stack frames",
     "queryFailed": "Failed to query logs",
     "noResults": "No results found.",
     "advancedFilters": "Advanced Filters",

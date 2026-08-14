@@ -9,6 +9,11 @@
   --app-header-background: rgba(255, 255, 255, 0.88);
   --app-table-header: #f8f9fb;
   --app-row-hover: #f4f7fc;
+  --query-logs-surface: #ffffff;
+  --query-logs-stripe: #fafbfc;
+  --query-logs-header: #f4f6f9;
+  --query-log-row-tint: 7%;
+  --query-log-row-tint-hover: 11%;
 }
 
 /* 深色模式：进一步加深底色，形成 body < navbar < paper 的层次 */
@@ -18,6 +23,11 @@
   --app-header-background: rgba(16, 18, 24, 0.88);
   --app-table-header: rgba(255, 255, 255, 0.025);
   --app-row-hover: rgba(77, 124, 254, 0.07);
+  --query-logs-surface: var(--mantine-color-dark-6);
+  --query-logs-stripe: rgba(255, 255, 255, 0.018);
+  --query-logs-header: rgba(255, 255, 255, 0.04);
+  --query-log-row-tint: 10%;
+  --query-log-row-tint-hover: 15%;
 }
 
 html {
@@ -285,6 +295,72 @@ select {
 
 .mantine-Table-td {
   border-bottom-color: var(--app-border-color);
+}
+
+/* ---------- 查询日志 ---------- */
+.query-logs-filter,
+.query-logs-results {
+  background-color: var(--query-logs-surface);
+}
+
+.query-logs-table .mantine-Table-thead {
+  background-color: var(--query-logs-header);
+}
+
+.query-logs-table .mantine-Table-tbody .mantine-Table-tr {
+  background-color: transparent;
+}
+
+.query-logs-table .mantine-Table-tbody .mantine-Table-tr:nth-of-type(even) {
+  background-color: var(--query-logs-stripe);
+}
+
+.query-logs-table .mantine-Table-tbody .mantine-Table-tr[data-tone] {
+  background-color: color-mix(
+    in srgb,
+    var(--query-log-row-tone) var(--query-log-row-tint),
+    var(--query-logs-surface)
+  );
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='server-failure'] {
+  --query-log-row-tone: var(--mantine-color-red-6);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='nx-domain'] {
+  --query-log-row-tone: var(--mantine-color-gray-6);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='refused'] {
+  --query-log-row-tone: var(--mantine-color-cyan-6);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='authoritative'] {
+  --query-log-row-tone: var(--mantine-color-lime-7);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='recursive'] {
+  --query-log-row-tone: var(--mantine-color-teal-6);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='cached'] {
+  --query-log-row-tone: var(--mantine-color-grape-6);
+}
+
+.query-logs-table .mantine-Table-tr[data-tone='blocked'] {
+  --query-log-row-tone: var(--mantine-color-orange-6);
+}
+
+.query-logs-table .mantine-Table-tbody .mantine-Table-tr[data-tone]:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--query-log-row-tone) var(--query-log-row-tint-hover),
+    var(--query-logs-surface)
+  );
+}
+
+.query-logs-table .mantine-Table-tbody .mantine-Table-tr:hover {
+  background-color: var(--app-row-hover);
 }
 
 .mantine-Menu-dropdown,

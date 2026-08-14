@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Group, Paper, Stack, Text } from '@mantine/core';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from '@codemirror/view';
@@ -15,7 +15,8 @@ import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import type { LogFile } from '../types';
-import { logHighlightPlugin } from '../components/logHighlightPlugin';
+import { logHighlightPlugin, logHighlightTheme } from '../components/logHighlightPlugin';
+import { createLogStackFoldingExtension } from '../components/logStackFolding';
 
 export function LogViewerTab() {
   const { t } = useTranslation();
@@ -25,6 +26,14 @@ export function LogViewerTab() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const logStackFolding = useMemo(
+    () =>
+      createLogStackFoldingExtension(
+        count => t('logs.stackFrames', { count }),
+        count => t('logs.exceptionDetails', { count })
+      ),
+    [t]
+  );
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -196,6 +205,8 @@ export function LogViewerTab() {
                   extensions={[
                     EditorView.lineWrapping,
                     logHighlightPlugin,
+                    logHighlightTheme,
+                    logStackFolding,
                     codeMirrorFontTheme,
                     foldGutterExtension,
                   ]}

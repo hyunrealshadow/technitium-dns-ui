@@ -1066,6 +1066,8 @@
     "noLogFileFound": "未找到日志文件",
     "download": "下载",
     "selectLogFile": "选择要查看的日志文件。",
+    "exceptionDetails": "… 异常详情 · {{count}} 个堆栈帧",
+    "stackFrames": "… {{count}} 个堆栈帧",
     "queryFailed": "查询日志失败",
     "noResults": "未找到结果。",
     "advancedFilters": "高级筛选",

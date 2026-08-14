@@ -56,6 +56,9 @@ importers:
       '@mantine/notifications':
         specifier: ^9.5.1
         version: 9.5.1(@mantine/core@9.5.1(@mantine/hooks@9.5.1(react@19.2.3))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@mantine/hooks@9.5.1(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@platformos/lang-jsonc':
+        specifier: 0.0.18
+        version: 0.0.18
       '@tabler/icons-react':
         specifier: ^3.36.0
         version: 3.36.0(react@19.2.3)
@@ -595,6 +598,9 @@ packages:
   '@pkgr/core@0.2.9':
     resolution: {integrity: sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
+
+  '@platformos/lang-jsonc@0.0.18':
+    resolution: {integrity: sha512-yj4vqyw6601Injv330qcOvCDrfptMrSGrTDeXC8AnOLOF7KW4XAdHVMBknOan0gNrIojp+54uhR2F/Qxsd6PDQ==}
 
   '@rolldown/pluginutils@1.0.0-beta.53':
     resolution: {integrity: sha512-vENRlFU4YbrwVqNDZ7fLvy+JR1CRkyr01jhSiDpE1u6py3OMzQfztQU2jxykW3ALNxO4kSlqIDeYyD0Y9RcQeQ==}
@@ -2786,6 +2792,11 @@ snapshots:
   '@marijn/find-cluster-break@1.0.3': {}
 
   '@pkgr/core@0.2.9': {}
+
+  '@platformos/lang-jsonc@0.0.18':
+    dependencies:
+      '@lezer/highlight': 1.2.3
+      '@lezer/lr': 1.4.10
 
   '@rolldown/pluginutils@1.0.0-beta.53': {}
 
