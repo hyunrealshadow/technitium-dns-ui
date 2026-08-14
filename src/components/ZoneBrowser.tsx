@@ -34,14 +34,6 @@ import {
   IconUpload,
   IconX,
 } from '@tabler/icons-react';
-import CodeMirror from '@uiw/react-codemirror';
-import { json } from '@codemirror/lang-json';
-import { oneDark } from '@codemirror/theme-one-dark';
-import {
-  codeMirrorFontTheme,
-  codeMirrorLightTheme,
-  foldGutterExtension,
-} from '../utils/codeMirror';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +44,7 @@ import { apiClient } from '../api/client';
 import { colorModeAtom, resolveColorMode } from '../store/theme';
 import { formatDateTime } from '../utils/dateTime';
 import type { ZoneBrowserSearch } from './ZoneBrowser.schema';
+import { LazyCodeEditor } from './LazyCodeEditor';
 import classes from './ZoneBrowser.module.css';
 
 type ApiBase = 'cache' | 'allowed' | 'blocked';
@@ -836,15 +829,12 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                   <Skeleton height={36} />
                 </Stack>
               ) : (
-                <CodeMirror
-                  // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
-                  key={isDark ? 'dark' : 'light'}
+                <LazyCodeEditor
+                  mode="json"
                   value={JSON.stringify(records, null, 2)}
                   readOnly
                   height="600px"
-                  extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
-                  theme={isDark ? oneDark : codeMirrorLightTheme}
-                  basicSetup={{ lineNumbers: true, foldGutter: false }}
+                  isDark={isDark}
                 />
               )
             ) : isLoading ? (

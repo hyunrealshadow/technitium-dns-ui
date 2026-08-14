@@ -1,22 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Group, Paper, Stack, Text } from '@mantine/core';
-import CodeMirror from '@uiw/react-codemirror';
-import { EditorView } from '@codemirror/view';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
-import {
-  codeMirrorFontTheme,
-  codeMirrorLightTheme,
-  foldGutterExtension,
-} from '../../../utils/codeMirror';
 import { success, error } from '../../../components/notifications';
+import { LazyCodeEditor } from '../../../components/LazyCodeEditor';
 import { apiClient } from '../../../api/client';
 import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import type { LogFile } from '../types';
-import { logHighlightPlugin, logHighlightTheme } from '../components/logHighlightPlugin';
-import { createLogStackFoldingExtension } from '../components/logStackFolding';
 
 export function LogViewerTab() {
   const { t } = useTranslation();
@@ -26,12 +17,9 @@ export function LogViewerTab() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const logStackFolding = useMemo(
-    () =>
-      createLogStackFoldingExtension(
-        count => t('logs.stackFrames', { count }),
-        count => t('logs.exceptionDetails', { count })
-      ),
+  const formatStackFrames = useCallback((count: number) => t('logs.stackFrames', { count }), [t]);
+  const formatExceptionDetails = useCallback(
+    (count: number) => t('logs.exceptionDetails', { count }),
     [t]
   );
 
@@ -196,27 +184,14 @@ export function LogViewerTab() {
               {loading ? (
                 <Text c="dimmed">{t('common.loading')}</Text>
               ) : content !== null ? (
-                <CodeMirror
-                  // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
-                  key={isDark ? 'dark' : 'light'}
+                <LazyCodeEditor
+                  mode="log"
                   value={content}
                   readOnly
                   height="600px"
-                  extensions={[
-                    EditorView.lineWrapping,
-                    logHighlightPlugin,
-                    logHighlightTheme,
-                    logStackFolding,
-                    codeMirrorFontTheme,
-                    foldGutterExtension,
-                  ]}
-                  theme={isDark ? oneDark : codeMirrorLightTheme}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: false,
-                    highlightActiveLine: false,
-                    highlightActiveLineGutter: false,
-                  }}
+                  isDark={isDark}
+                  formatStackFrames={formatStackFrames}
+                  formatExceptionDetails={formatExceptionDetails}
                 />
               ) : null}
             </Stack>

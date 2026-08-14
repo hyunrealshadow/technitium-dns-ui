@@ -14,14 +14,6 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import CodeMirror from '@uiw/react-codemirror';
-import { json } from '@codemirror/lang-json';
-import { oneDark } from '@codemirror/theme-one-dark';
-import {
-  codeMirrorFontTheme,
-  codeMirrorLightTheme,
-  foldGutterExtension,
-} from '../../utils/codeMirror';
 import { getRcodeColor } from '../../utils/rcode';
 import { useTranslation } from 'react-i18next';
 import { useSearch } from '@tanstack/react-router';
@@ -33,6 +25,7 @@ import type { DnsQueryResult, ResolveResponse, ServerListItem } from './types';
 import { DNS_RECORD_TYPES, DNS_PROTOCOLS, DOT_BADGE_STYLE } from './constants';
 import { extractServer, sanitizeDomain } from './utils';
 import { DnsRecordTable } from './components/DnsRecordTable';
+import { LazyCodeEditor } from '../../components/LazyCodeEditor';
 
 export function DnsClientPage() {
   const { t } = useTranslation();
@@ -209,15 +202,12 @@ export function DnsClientPage() {
           </Tabs>
 
           {viewMode === 'json' ? (
-            <CodeMirror
-              // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
-              key={isDark ? 'dark' : 'light'}
+            <LazyCodeEditor
+              mode="json"
               value={JSON.stringify(result, null, 2)}
               readOnly
               height="600px"
-              extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
-              theme={isDark ? oneDark : codeMirrorLightTheme}
-              basicSetup={{ lineNumbers: true, foldGutter: false }}
+              isDark={isDark}
             />
           ) : (
             <>
@@ -341,15 +331,13 @@ export function DnsClientPage() {
                     <Accordion.Panel>
                       <Stack gap="sm">
                         {rawResponses.map((raw, i) => (
-                          <CodeMirror
-                            // theme 是创建期扩展，主题变化时用 key 强制重建编辑器
+                          <LazyCodeEditor
                             key={`${i}-${isDark ? 'dark' : 'light'}`}
+                            mode="json"
                             value={JSON.stringify(raw, null, 2)}
                             readOnly
                             height="300px"
-                            extensions={[json(), codeMirrorFontTheme, foldGutterExtension]}
-                            theme={isDark ? oneDark : codeMirrorLightTheme}
-                            basicSetup={{ lineNumbers: true, foldGutter: false }}
+                            isDark={isDark}
                           />
                         ))}
                       </Stack>

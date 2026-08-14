@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Modal, Stack } from '@mantine/core';
-import CodeMirror from '@uiw/react-codemirror';
-import { jsonc } from '@platformos/lang-jsonc';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
-import {
-  codeMirrorFontTheme,
-  codeMirrorLightTheme,
-  foldGutterExtension,
-} from '../../../utils/codeMirror';
 import { success, error } from '../../../components/notifications';
+import { LazyCodeEditor } from '../../../components/LazyCodeEditor';
 import { apiClient } from '../../../api/client';
 import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import type { App } from '../types';
@@ -75,20 +68,12 @@ export function AppConfigModal({
       size="lg"
     >
       <Stack>
-        <CodeMirror
-          // theme 是 CodeMirror 创建期扩展，切换时用 key 强制重建编辑器
-          key={isDark ? 'dark' : 'light'}
+        <LazyCodeEditor
+          mode="jsonc"
           value={configText}
           onChange={setConfigText}
           height="400px"
-          extensions={[jsonc(), codeMirrorFontTheme, foldGutterExtension]}
-          theme={isDark ? oneDark : codeMirrorLightTheme}
-          basicSetup={{
-            lineNumbers: true,
-            foldGutter: false,
-            highlightActiveLine: true,
-            highlightActiveLineGutter: true,
-          }}
+          isDark={isDark}
         />
         <Group justify="flex-end">
           <Button variant="subtle" onClick={onClose}>
