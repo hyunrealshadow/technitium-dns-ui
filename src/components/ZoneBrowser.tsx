@@ -900,10 +900,10 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                         {hasDnsServerColumn && (
                           <Table.Th style={{ width: 220 }}>{t('zoneTree.dnsServer')}</Table.Th>
                         )}
-                        <Table.Th>{t('zones.recordData')}</Table.Th>
                         {hasStatusColumn && (
                           <Table.Th style={{ width: 100 }}>{t('zones.recordStatus')}</Table.Th>
                         )}
+                        <Table.Th>{t('zones.recordData')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -978,6 +978,31 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                                   )}
                                 </Table.Td>
                               )}
+                              {hasStatusColumn && (
+                                <Table.Td>
+                                  {record.disabled ? (
+                                    <Badge
+                                      color="gray"
+                                      size="sm"
+                                      variant="dot"
+                                      tt="none"
+                                      style={dotBadgeStyle}
+                                    >
+                                      {t('common.disabled')}
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      color="green"
+                                      size="sm"
+                                      variant="dot"
+                                      tt="none"
+                                      style={dotBadgeStyle}
+                                    >
+                                      {t('common.enabled')}
+                                    </Badge>
+                                  )}
+                                </Table.Td>
+                              )}
                               <Table.Td>
                                 <Group gap={6} wrap="nowrap" align="flex-start">
                                   <Box style={{ flex: 1, minWidth: 0 }}>
@@ -1007,31 +1032,6 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                                   </ActionIcon>
                                 </Group>
                               </Table.Td>
-                              {hasStatusColumn && (
-                                <Table.Td>
-                                  {record.disabled ? (
-                                    <Badge
-                                      color="gray"
-                                      size="sm"
-                                      variant="dot"
-                                      tt="none"
-                                      style={dotBadgeStyle}
-                                    >
-                                      {t('common.disabled')}
-                                    </Badge>
-                                  ) : (
-                                    <Badge
-                                      color="green"
-                                      size="sm"
-                                      variant="dot"
-                                      tt="none"
-                                      style={dotBadgeStyle}
-                                    >
-                                      {t('common.enabled')}
-                                    </Badge>
-                                  )}
-                                </Table.Td>
-                              )}
                             </Table.Tr>
                             {isExpanded && (
                               <Table.Tr>

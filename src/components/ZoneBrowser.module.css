@@ -13,22 +13,19 @@
 }
 
 .detailsList {
-  overflow: hidden;
-  background: var(--mantine-color-body);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
+  background: transparent;
 }
 
 .detailsSection + .detailsSection {
+  margin-top: 0.5rem;
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .detailsSectionTitle {
-  padding: 0.45rem 0.75rem;
+  padding: 0.4rem 0.5rem;
   color: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
   font-weight: 500;
-  background: var(--mantine-color-default-hover);
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
 
@@ -44,7 +41,7 @@
 
 .detailsLabel,
 .detailsValue {
-  padding: 0.55rem 0.75rem;
+  padding: 0.55rem 0.5rem;
 }
 
 .detailsValue {
@@ -53,7 +50,6 @@
   font-family: var(--mantine-font-family-monospace);
   font-size: var(--mantine-font-size-sm);
   line-height: 1.5;
-  border-left: 1px solid var(--mantine-color-default-border);
 }
 
 .detailsLongValue {
@@ -73,7 +69,6 @@
 
   .detailsValue {
     padding-top: 0.2rem;
-    border-left: 0;
   }
 }
 
