@@ -45,6 +45,7 @@ import { RecordTtl } from './RecordTtl';
 import { formatRecordTtl } from './RecordTtl.utils';
 import type { ZoneBrowserSearch } from './ZoneBrowser.schema';
 import { LazyCodeEditor } from './LazyCodeEditor';
+import { useConfirmDialog } from './ConfirmDialog.context';
 import classes from './ZoneBrowser.module.css';
 
 type ApiBase = 'cache' | 'allowed' | 'blocked';
@@ -497,6 +498,7 @@ function RecordDetailsList({
 
 export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const queryClient = useQueryClient();
   const [colorMode] = useAtom(colorModeAtom);
   const isDark = resolveColorMode(colorMode) === 'dark';
@@ -515,7 +517,6 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   const [input, setInput] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
-  const [confirmAction, setConfirmAction] = useState<'delete' | 'flush' | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'json'>('table');
 
@@ -637,12 +638,18 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
 
   const handleDelete = async () => {
     if (!resolvedDomain) return;
+    if (
+      !(await confirmDialog(t('zoneTree.deleteConfirm', { domain: resolvedDomain }), {
+        color: 'red',
+        confirmLabel: t('common.delete'),
+      }))
+    )
+      return;
     try {
       const res = await apiClient.post(`/${apiBase}/delete`, { domain: resolvedDomain });
       if (res.status !== 'ok') throw new Error(res.errorMessage || 'Failed');
       success(t('common.success'), t('zoneTree.deleted'));
       updateSearch({ domain: getParentDomain(resolvedDomain) });
-      setConfirmAction(null);
       await invalidate();
     } catch {
       error(t('common.error'), t('zoneTree.deleteFailed'));
@@ -650,12 +657,18 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
   };
 
   const handleFlush = async () => {
+    if (
+      !(await confirmDialog(flushMessages[apiBase].confirm, {
+        color: 'red',
+        confirmLabel: t('zoneTree.flush'),
+      }))
+    )
+      return;
     try {
       const res = await apiClient.post(`/${apiBase}/flush`, {});
       if (res.status !== 'ok') throw new Error(res.errorMessage || 'Failed');
       success(t('common.success'), flushMessages[apiBase].success);
       updateSearch({ domain: '' });
-      setConfirmAction(null);
       await invalidate();
     } catch {
       error(t('common.error'), flushMessages[apiBase].fail);
@@ -728,7 +741,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
             variant="light"
             color="red"
             leftSection={<IconX size={15} />}
-            onClick={() => setConfirmAction('flush')}
+            onClick={handleFlush}
           >
             {t('zoneTree.flush')}
           </Button>
@@ -836,7 +849,7 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
                     color="yellow"
                     variant="light"
                     leftSection={<IconTrash size={14} />}
-                    onClick={() => setConfirmAction('delete')}
+                    onClick={handleDelete}
                   >
                     {t('common.delete')}
                   </Button>
@@ -1100,28 +1113,6 @@ export function ZoneBrowser({ apiBase }: { apiBase: ApiBase }) {
             </Button>
           </Group>
         </Stack>
-      </Modal>
-
-      {/* 删除当前域 / 清空确认 */}
-      <Modal
-        opened={confirmAction !== null}
-        onClose={() => setConfirmAction(null)}
-        title={t('common.confirm')}
-        centered
-      >
-        <Text mb="lg">
-          {confirmAction === 'flush'
-            ? flushMessages[apiBase].confirm
-            : t('zoneTree.deleteConfirm', { domain: resolvedDomain })}
-        </Text>
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={() => setConfirmAction(null)}>
-            {t('common.cancel')}
-          </Button>
-          <Button color="red" onClick={confirmAction === 'flush' ? handleFlush : handleDelete}>
-            {confirmAction === 'flush' ? t('zoneTree.flush') : t('common.delete')}
-          </Button>
-        </Group>
       </Modal>
     </Stack>
   );

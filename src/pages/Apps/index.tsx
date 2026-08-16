@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { success, error } from '../../components/notifications';
 import { apiClient } from '../../api/client';
 import type { App } from './types';
+import { useConfirmDialog } from '../../components/ConfirmDialog.context';
 import { getTypeLabels } from './constants';
 import { AppStoreModal } from './components/AppStoreModal';
 import { AppConfigModal } from './components/AppConfigModal';
@@ -48,6 +49,7 @@ const APP_SKELETON_PROFILES = [
 
 export function AppsPage() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState<App[]>([]);
   const [storeOpen, setStoreOpen] = useState(false);
@@ -188,7 +190,8 @@ export function AppsPage() {
   };
 
   const uninstallApp = async (app: App) => {
-    if (!window.confirm(t('apps.uninstallConfirm', { name: app.name }))) return;
+    if (!(await confirmDialog(t('apps.uninstallConfirm', { name: app.name }), { color: 'red' })))
+      return;
     try {
       const response = await apiClient.post(
         `/apps/uninstall?name=${encodeURIComponent(app.name)}`,

@@ -1,4 +1,9 @@
 import { routeTree } from './routeTree.gen.ts';
-import { createRouter } from '@tanstack/react-router';
+import { createHashHistory, createRouter } from '@tanstack/react-router';
 
-export const router = createRouter({ routeTree });
+const useHashHistory = import.meta.env.VITE_ROUTER_MODE === 'hash';
+
+export const router = createRouter({
+  routeTree,
+  ...(useHashHistory ? { history: createHashHistory() } : {}),
+});

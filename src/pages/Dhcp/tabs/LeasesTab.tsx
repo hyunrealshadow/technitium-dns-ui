@@ -13,6 +13,7 @@ import {
 } from '@mantine/core';
 import { IconDotsVertical } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
@@ -21,6 +22,7 @@ import { formatDateTime } from '../../../utils/dateTime';
 
 export function LeasesTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [leases, setLeases] = useState<DhcpLease[]>([]);
   const [removeTarget, setRemoveTarget] = useState<DhcpLease | null>(null);
 
@@ -53,7 +55,7 @@ export function LeasesTab() {
   }, [t]);
 
   const convertToReserved = async (lease: DhcpLease) => {
-    if (!window.confirm(t('dhcp.convertToReservedConfirm'))) return;
+    if (!(await confirmDialog(t('dhcp.convertToReservedConfirm')))) return;
     try {
       const response = await apiClient.post('/dhcp/leases/convertToReserved', {
         name: lease.scope,
@@ -69,7 +71,7 @@ export function LeasesTab() {
   };
 
   const convertToDynamic = async (lease: DhcpLease) => {
-    if (!window.confirm(t('dhcp.convertToDynamicConfirm'))) return;
+    if (!(await confirmDialog(t('dhcp.convertToDynamicConfirm')))) return;
     try {
       const response = await apiClient.post('/dhcp/leases/convertToDynamic', {
         name: lease.scope,

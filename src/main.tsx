@@ -1,6 +1,7 @@
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
+import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { Provider as JotaiProvider, useAtom } from 'jotai';
 import { RouterProvider } from '@tanstack/react-router';
@@ -120,7 +121,9 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme}>
         <Notifications position="top-right" />
-        <RouterProvider router={router} />
+        <ModalsProvider>
+          <RouterProvider router={router} />
+        </ModalsProvider>
       </MantineProvider>
     </QueryClientProvider>
   );

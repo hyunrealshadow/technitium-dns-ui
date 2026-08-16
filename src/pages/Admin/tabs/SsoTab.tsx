@@ -18,6 +18,7 @@ import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../api/client';
 import { error, success } from '../../../components/notifications';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 
 interface SsoGroupMap {
   remoteGroup: string;
@@ -52,6 +53,7 @@ const emptyConfig: SsoConfig = {
 
 export function SsoTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [config, setConfig] = useState<SsoConfig>(emptyConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,7 +81,7 @@ export function SsoTab() {
     }
     if (
       (config.ssoAuthority.startsWith('http:') || config.ssoMetadataAddress.startsWith('http:')) &&
-      !window.confirm(t('admin.ssoHttpWarning'))
+      !(await confirmDialog(t('admin.ssoHttpWarning'), { color: 'orange' }))
     ) {
       return;
     }

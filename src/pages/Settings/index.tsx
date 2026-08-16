@@ -24,9 +24,11 @@ import { CacheTab } from './tabs/CacheTab';
 import { BlockingTab } from './tabs/BlockingTab';
 import { ProxyForwardersTab } from './tabs/ProxyForwardersTab';
 import { LoggingTab } from './tabs/LoggingTab';
+import { useConfirmDialog } from '../../components/ConfirmDialog.context';
 
 export function SettingsPage({ tab = 'general' }: { tab?: string }) {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [settings, setSettings] = useState<Settings>(emptySettings);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -245,7 +247,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
   };
 
   const flushCache = async () => {
-    if (!window.confirm(t('settings.flushCacheConfirm'))) return;
+    if (!(await confirmDialog(t('settings.flushCacheConfirm'), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/cache/flush', {});
       if (response.status === 'ok') {
@@ -268,7 +270,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
   };
 
   const temporaryDisableBlocking = async (minutes: number) => {
-    if (!window.confirm(t('settings.tempDisableConfirm', { minutes }))) return;
+    if (!(await confirmDialog(t('settings.tempDisableConfirm', { minutes })))) return;
     try {
       const response = await apiClient.post(
         `/settings/temporaryDisableBlocking?minutes=${minutes}`,

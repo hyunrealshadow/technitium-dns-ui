@@ -20,6 +20,7 @@ import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
 import type { AdminUser } from '../types';
 import { formatDateTime } from '../../../utils/dateTime';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 
 function AddUserForm({
   onCancel,
@@ -187,6 +188,7 @@ function UserForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
 
 export function UsersTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -224,7 +226,8 @@ export function UsersTab() {
   };
 
   const deleteUser = async (username: string) => {
-    if (!window.confirm(t('admin.userDeleteConfirm', { username }))) return;
+    if (!(await confirmDialog(t('admin.userDeleteConfirm', { username }), { color: 'red' })))
+      return;
     try {
       const response = await apiClient.post('/admin/users/delete', { user: username });
       if (response.status === 'ok') {

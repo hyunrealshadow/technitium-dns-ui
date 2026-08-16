@@ -16,6 +16,7 @@ import {
 } from '@mantine/core';
 import { IconDotsVertical } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
@@ -24,6 +25,7 @@ import { formatDateTime } from '../../../utils/dateTime';
 
 export function SessionsTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [sessions, setSessions] = useState<AdminSession[]>([]);
   const [users, setUsers] = useState<string[]>([]);
   const [createTokenOpen, setCreateTokenOpen] = useState(false);
@@ -52,7 +54,12 @@ export function SessionsTab() {
   }, []);
 
   const deleteSession = async (session: AdminSession) => {
-    if (!window.confirm(t('admin.sessionDeleteConfirm', { token: session.partialToken }))) return;
+    if (
+      !(await confirmDialog(t('admin.sessionDeleteConfirm', { token: session.partialToken }), {
+        color: 'red',
+      }))
+    )
+      return;
     try {
       const response = await apiClient.post('/admin/sessions/delete', {
         partialToken: session.partialToken,

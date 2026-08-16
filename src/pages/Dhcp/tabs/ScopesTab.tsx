@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Paper, Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
@@ -9,6 +10,7 @@ import { ScopeForm } from '../components/ScopeForm';
 
 export function ScopesTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [scopes, setScopes] = useState<DhcpScope[]>([]);
   const [editingScope, setEditingScope] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -43,12 +45,12 @@ export function ScopesTab() {
 
   const setScopeEnabled = async (scopeName: string, enabled: boolean) => {
     if (
-      !window.confirm(
+      !(await confirmDialog(
         t('dhcp.scopeEnableDisableConfirm', {
           action: enabled ? t('dhcp.enable') : t('dhcp.disable'),
           name: scopeName,
         })
-      )
+      ))
     )
       return;
     try {
@@ -69,7 +71,8 @@ export function ScopesTab() {
   };
 
   const deleteScope = async (scopeName: string) => {
-    if (!window.confirm(t('dhcp.scopeDeleteConfirm', { name: scopeName }))) return;
+    if (!(await confirmDialog(t('dhcp.scopeDeleteConfirm', { name: scopeName }), { color: 'red' })))
+      return;
     try {
       const response = await apiClient.post('/dhcp/scopes/delete', { name: scopeName });
       if (response.status === 'ok') {

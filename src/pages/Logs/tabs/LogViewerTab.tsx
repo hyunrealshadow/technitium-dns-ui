@@ -8,9 +8,11 @@ import { LazyCodeEditor } from '../../../components/LazyCodeEditor';
 import { apiClient } from '../../../api/client';
 import { colorModeAtom, resolveColorMode } from '../../../store/theme';
 import type { LogFile } from '../types';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 
 export function LogViewerTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [colorMode] = useAtom(colorModeAtom);
   const isDark = resolveColorMode(colorMode) === 'dark';
   const [logFiles, setLogFiles] = useState<LogFile[]>([]);
@@ -62,7 +64,8 @@ export function LogViewerTab() {
   };
 
   const deleteLog = async (fileName: string) => {
-    if (!window.confirm(t('logs.logFileDeleteConfirm', { fileName }))) return;
+    if (!(await confirmDialog(t('logs.logFileDeleteConfirm', { fileName }), { color: 'red' })))
+      return;
     try {
       const response = await apiClient.post('/logs/delete', { log: fileName });
       if (response.status === 'ok') {
@@ -77,7 +80,7 @@ export function LogViewerTab() {
   };
 
   const deleteAllLogs = async () => {
-    if (!window.confirm(t('logs.deleteAllLogsConfirm'))) return;
+    if (!(await confirmDialog(t('logs.deleteAllLogsConfirm'), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/logs/deleteAll', {});
       if (response.status === 'ok') {
@@ -92,7 +95,7 @@ export function LogViewerTab() {
   };
 
   const deleteAllStats = async () => {
-    if (!window.confirm(t('logs.deleteAllStatsConfirm'))) return;
+    if (!(await confirmDialog(t('logs.deleteAllStatsConfirm'), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/dashboard/stats/deleteAll', {});
       if (response.status === 'ok') {

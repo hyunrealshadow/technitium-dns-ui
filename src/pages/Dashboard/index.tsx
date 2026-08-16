@@ -34,9 +34,11 @@ import { formatPercentage } from './utils';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { DashboardSearch } from './schema.ts';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { useConfirmDialog } from '../../components/ConfirmDialog.context';
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const navigate = useNavigate();
   const search = useSearch({ from: '/_authenticated/dashboard' });
   const queryClient = useQueryClient();
@@ -169,19 +171,19 @@ export function DashboardPage() {
     },
   });
 
-  const setBlocking = (enabled: boolean) => {
+  const setBlocking = async (enabled: boolean) => {
     if (
-      !window.confirm(
+      !(await confirmDialog(
         t(enabled ? 'dashboard.blocking.enableConfirm' : 'dashboard.blocking.disableConfirm')
-      )
+      ))
     ) {
       return;
     }
     blockingMutation.mutate({ enabled });
   };
 
-  const temporarilyDisableBlocking = (minutes: number) => {
-    if (!window.confirm(t('settings.tempDisableConfirm', { minutes }))) return;
+  const temporarilyDisableBlocking = async (minutes: number) => {
+    if (!(await confirmDialog(t('settings.tempDisableConfirm', { minutes })))) return;
     blockingMutation.mutate({ minutes });
   };
 

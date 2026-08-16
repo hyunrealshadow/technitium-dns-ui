@@ -1,0 +1,92 @@
+name: Build and release production packages
+
+on:
+  push:
+
+jobs:
+  release_please:
+    name: Prepare release
+    needs: build
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          release-type: node
+
+  build:
+    name: Build ${{ matrix.router_mode }} package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        router_mode:
+          - hash
+          - history
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v1
+        with:
+          version: 11.0.8
+          runtime: node@24
+          cache: true
+          install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build ${{ matrix.router_mode }} package
+        run: pnpm run build:${{ matrix.router_mode }}
+
+      - name: Create ${{ matrix.router_mode }} ZIP package
+        working-directory: dist
+        run: zip -r ../technitium-dns-ui-${{ matrix.router_mode }}.zip .
+
+      - name: Upload ${{ matrix.router_mode }} package
+        uses: actions/upload-artifact@v7
+        with:
+          name: technitium-dns-ui-${{ matrix.router_mode }}
+          path: technitium-dns-ui-${{ matrix.router_mode }}.zip
+          if-no-files-found: error
+          compression-level: 0
+
+  publish_release:
+    name: Publish release assets
+    needs:
+      - release_please
+      - build
+    if: needs.release_please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Download production packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: technitium-dns-ui-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Upload packages to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.release_please.outputs.tag_name }}
+        run: gh release upload "$TAG_NAME" release-assets/technitium-dns-ui-*.zip --clobber

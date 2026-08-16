@@ -14,6 +14,7 @@ import {
 } from '@mantine/core';
 import { IconDotsVertical, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
@@ -158,6 +159,7 @@ function GroupForm({ group, onDone }: { group: AdminGroup; onDone: () => void })
 
 export function GroupsTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGroup, setEditingGroup] = useState<AdminGroup | null>(null);
@@ -196,7 +198,7 @@ export function GroupsTab() {
   };
 
   const deleteGroup = async (name: string) => {
-    if (!window.confirm(t('admin.groupDeleteConfirm', { name }))) return;
+    if (!(await confirmDialog(t('admin.groupDeleteConfirm', { name }), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/admin/groups/delete', { group: name });
       if (response.status === 'ok') {

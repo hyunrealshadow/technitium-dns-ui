@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import type { StoreApp } from '../types';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 
 type StoreAction = 'install' | 'update' | 'uninstall';
 
@@ -19,6 +20,7 @@ export function AppStoreModal({
   onInstalled: () => void;
 }) {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [storeApps, setStoreApps] = useState<StoreApp[]>([]);
   const [pendingAction, setPendingAction] = useState<{
     appName: string;
@@ -80,7 +82,8 @@ export function AppStoreModal({
   };
 
   const uninstallFromStore = async (app: StoreApp) => {
-    if (!window.confirm(t('apps.uninstallConfirm', { name: app.name }))) return;
+    if (!(await confirmDialog(t('apps.uninstallConfirm', { name: app.name }), { color: 'red' })))
+      return;
     setPendingAction({ appName: app.name, action: 'uninstall' });
     try {
       const response = await apiClient.post(

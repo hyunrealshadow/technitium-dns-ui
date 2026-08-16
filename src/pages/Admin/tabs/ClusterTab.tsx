@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Modal, Paper, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { useConfirmDialog } from '../../../components/ConfirmDialog.context';
 import { success, error } from '../../../components/notifications';
 import { apiClient } from '../../../api/client';
 import { PageHeader } from '../../../components/PageHeader';
@@ -9,6 +10,7 @@ import { formatDateTime } from '../../../utils/dateTime';
 
 export function ClusterTab() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [nodes, setNodes] = useState<ClusterNode[]>([]);
   const [clusterInitialized, setClusterInitialized] = useState(false);
   const [showInitModal, setShowInitModal] = useState(false);
@@ -76,7 +78,7 @@ export function ClusterTab() {
   };
 
   const leaveCluster = async () => {
-    if (!window.confirm(t('admin.leaveClusterConfirm'))) return;
+    if (!(await confirmDialog(t('admin.leaveClusterConfirm'), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/admin/cluster/secondary/leave', {
         forceLeave: false,
@@ -91,7 +93,7 @@ export function ClusterTab() {
   };
 
   const deleteCluster = async () => {
-    if (!window.confirm(t('admin.deleteClusterConfirm'))) return;
+    if (!(await confirmDialog(t('admin.deleteClusterConfirm'), { color: 'red' }))) return;
     try {
       const response = await apiClient.post('/admin/cluster/primary/delete', {
         forceDelete: false,

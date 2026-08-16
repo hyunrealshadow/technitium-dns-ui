@@ -26,9 +26,11 @@ import { DNS_RECORD_TYPES, DNS_PROTOCOLS, DOT_BADGE_STYLE } from './constants';
 import { extractServer, sanitizeDomain } from './utils';
 import { DnsRecordTable } from './components/DnsRecordTable';
 import { LazyCodeEditor } from '../../components/LazyCodeEditor';
+import { useConfirmDialog } from '../../components/ConfirmDialog.context';
 
 export function DnsClientPage() {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [colorMode] = useAtom(colorModeAtom);
   const isDark = resolveColorMode(colorMode) === 'dark';
   const dotBadgeStyle = {
@@ -83,7 +85,7 @@ export function DnsClientPage() {
     }
 
     if (importRecords) {
-      if (!window.confirm(t('dnsClient.importConfirm', { domain: domainValue }))) return;
+      if (!(await confirmDialog(t('dnsClient.importConfirm', { domain: domainValue })))) return;
     }
 
     setLoading(true);

@@ -5,6 +5,7 @@ import { success, error } from './notifications';
 import { apiClient } from '../api/client';
 import { useAtom } from 'jotai';
 import { sessionAtom } from '../store/auth';
+import { useConfirmDialog } from './ConfirmDialog.context';
 
 export function MyProfileModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -256,6 +257,7 @@ export function ChangePasswordModal({ opened, onClose }: { opened: boolean; onCl
 
 export function Configure2FAModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [secret, setSecret] = useState('');
   const [qrCode, setQrCode] = useState('');
@@ -300,7 +302,7 @@ export function Configure2FAModal({ opened, onClose }: { opened: boolean; onClos
   };
 
   const disable = async () => {
-    if (!window.confirm(t('account.twoFaDisableConfirm'))) return;
+    if (!(await confirmDialog(t('account.twoFaDisableConfirm'), { color: 'red' }))) return;
     setSaving(true);
     try {
       const response = await apiClient.post('/user/2fa/disable', {});

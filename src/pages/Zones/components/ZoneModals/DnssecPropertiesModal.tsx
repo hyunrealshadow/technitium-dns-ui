@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { success, error } from '../../../../components/notifications';
 import { apiClient } from '../../../../api/client';
+import { useConfirmDialog } from '../../../../components/ConfirmDialog.context';
 export function DnssecPropertiesModal({
   zone,
   opened,
@@ -25,6 +26,7 @@ export function DnssecPropertiesModal({
   onSuccess: () => void;
 }) {
   const { t } = useTranslation();
+  const confirmDialog = useConfirmDialog();
   const [zoneProps, setZoneProps] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -139,7 +141,7 @@ export function DnssecPropertiesModal({
   };
 
   const handleActivateKsk = async (keyTag: number) => {
-    if (!window.confirm(t('zones.activateKskConfirm', { keyTag }))) return;
+    if (!(await confirmDialog(t('zones.activateKskConfirm', { keyTag })))) return;
     setSaving(true);
     try {
       await apiClient.post('/zones/dnssec/properties/activateKskDnsKey', { zone, keyTag });
