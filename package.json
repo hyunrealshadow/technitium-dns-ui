@@ -7,12 +7,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:hash": "tsc -b && vite build --mode hash",
-    "build:history": "tsc -b && vite build --mode history",
+    "generate-routes": "tsr generate",
+    "build": "pnpm generate-routes && tsc -b && vite build",
+    "build:hash": "pnpm generate-routes && tsc -b && vite build --mode hash",
+    "build:history": "pnpm generate-routes && tsc -b && vite build --mode history",
     "lint": "eslint .",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm generate-routes && tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" vite.config.ts",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,md}\" vite.config.ts"
   },
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tanstack/react-router-devtools": "^1.145.7",
+    "@tanstack/router-cli": "1.145.7",
     "@tanstack/router-plugin": "^1.145.7",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
