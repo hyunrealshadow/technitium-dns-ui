@@ -138,10 +138,15 @@ export const theme = createTheme({
       },
       styles: {
         content: {
+          backgroundColor: 'var(--mantine-color-default)',
           border: '1px solid var(--app-border-color)',
           boxShadow: 'var(--mantine-shadow-lg)',
         },
-        header: { paddingBottom: 'var(--mantine-spacing-sm)' },
+        header: {
+          backgroundColor: 'var(--mantine-color-default)',
+          paddingBottom: 'var(--mantine-spacing-sm)',
+        },
+        body: { backgroundColor: 'var(--mantine-color-default)' },
         title: { fontWeight: 650 },
       },
     },
