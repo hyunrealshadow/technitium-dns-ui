@@ -151,7 +151,7 @@ export function QueryLogsTab({
   );
 
   const queryLogs = async (pageNumber?: number) => {
-    if (!appName || !classPath) return;
+    if (appSelectionLoading || !appName || !classPath) return;
     const p = pageNumber ?? page;
     setLoading(true);
     try {
@@ -185,6 +185,7 @@ export function QueryLogsTab({
   }, [liveUpdate, queried]);
 
   const exportCsv = async () => {
+    if (appSelectionLoading || !appName || !classPath) return;
     const token = await apiClient.createSingleUseToken();
     const url =
       `/api/logs/export?token=${encodeURIComponent(token)}&name=${encodeURIComponent(appName)}&classPath=${encodeURIComponent(classPath)}` +
@@ -282,12 +283,24 @@ export function QueryLogsTab({
               onChange={e => setLiveUpdate(e.currentTarget.checked)}
               mb={7}
             />
-            <Button onClick={() => queryLogs(1)} loading={loading}>
-              {t('logs.query')}
-            </Button>
-            <Button variant="default" onClick={exportCsv}>
-              {t('common.export')}
-            </Button>
+            <Skeleton visible={appSelectionLoading} width="fit-content" radius="md">
+              <Button
+                onClick={() => queryLogs(1)}
+                loading={loading}
+                disabled={appSelectionLoading || !appName || !classPath}
+              >
+                {t('logs.query')}
+              </Button>
+            </Skeleton>
+            <Skeleton visible={appSelectionLoading} width="fit-content" radius="md">
+              <Button
+                variant="default"
+                onClick={exportCsv}
+                disabled={appSelectionLoading || !appName || !classPath}
+              >
+                {t('common.export')}
+              </Button>
+            </Skeleton>
             <Button
               variant="default"
               onClick={() => {
