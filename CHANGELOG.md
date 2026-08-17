@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.0...v1.0.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **ci:** publish packages to GitHub releases ([f28594f](https://github.com/hyunrealshadow/technitium-dns-ui/commit/f28594fd5ed01ca11012713591d613d1257fa71f))
+
 ## 1.0.0 (2026-08-17)
 
 
