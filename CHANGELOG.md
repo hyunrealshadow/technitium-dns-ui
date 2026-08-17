@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.1...v1.0.2) (2026-08-17)
+
+
+### Bug Fixes
+
+* **ui:** unify modal surface colors ([b0fc89e](https://github.com/hyunrealshadow/technitium-dns-ui/commit/b0fc89e6d59305085d1f91664d0736177b1456ea))
+
 ## [1.0.1](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.0...v1.0.1) (2026-08-17)
 
 
