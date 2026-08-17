@@ -2,12 +2,20 @@ name: Build and release production packages
 
 on:
   push:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to rebuild and upload assets for
+        required: true
+        type: string
 
 jobs:
   release_please:
     name: Prepare release
     needs: build
-    if: github.ref_name == github.event.repository.default_branch
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -39,6 +47,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.sha }}
 
       - name: Set up pnpm and Node.js
         uses: pnpm/setup@v1
@@ -71,7 +81,13 @@ jobs:
     needs:
       - release_please
       - build
-    if: needs.release_please.outputs.release_created == 'true'
+    if: >-
+      always() &&
+      needs.build.result == 'success' &&
+      (
+        needs.release_please.outputs.release_created == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -88,5 +104,9 @@ jobs:
       - name: Upload packages to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ needs.release_please.outputs.tag_name }}
-        run: gh release upload "$TAG_NAME" release-assets/technitium-dns-ui-*.zip --clobber
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || needs.release_please.outputs.tag_name }}
+        run: >-
+          gh release upload "$TAG_NAME"
+          release-assets/technitium-dns-ui-*.zip
+          --clobber
+          --repo "$GITHUB_REPOSITORY"
