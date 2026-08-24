@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.2...v1.0.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* **logs:** skeletonize unavailable query actions ([3ccea86](https://github.com/hyunrealshadow/technitium-dns-ui/commit/3ccea86dd1ee27b0b580509dc727e28e16a052d2))
+
 ## [1.0.2](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.1...v1.0.2) (2026-08-17)
 
 
