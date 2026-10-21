@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.3...v1.0.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* preserve DNS records and admin form settings ([1b36e02](https://github.com/hyunrealshadow/technitium-dns-ui/commit/1b36e02053e5351ec95188e1786fe8bb89ede8bd))
+
 ## [1.0.3](https://github.com/hyunrealshadow/technitium-dns-ui/compare/v1.0.2...v1.0.3) (2026-08-23)
 
 
