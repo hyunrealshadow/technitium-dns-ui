@@ -185,14 +185,18 @@ export function QueryLogsTab({
   }, [liveUpdate, queried]);
 
   const exportCsv = async () => {
-    if (appSelectionLoading || !appName || !classPath) return;
-    const token = await apiClient.createSingleUseToken();
-    const url =
-      `/api/logs/export?token=${encodeURIComponent(token)}&name=${encodeURIComponent(appName)}&classPath=${encodeURIComponent(classPath)}` +
-      `&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&clientIpAddress=${encodeURIComponent(clientIp)}` +
-      `&protocol=${protocol}&responseType=${responseType}&rcode=${rcode}` +
-      `&qname=${encodeURIComponent(qname)}&qtype=${qtype}&qclass=${qclass}`;
-    window.open(url, '_blank');
+    try {
+      if (appSelectionLoading || !appName || !classPath) return;
+      const token = await apiClient.createSingleUseToken();
+      const url =
+        `/api/logs/export?token=${encodeURIComponent(token)}&name=${encodeURIComponent(appName)}&classPath=${encodeURIComponent(classPath)}` +
+        `&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&clientIpAddress=${encodeURIComponent(clientIp)}` +
+        `&protocol=${protocol}&responseType=${responseType}&rcode=${rcode}` +
+        `&qname=${encodeURIComponent(qname)}&qtype=${qtype}&qclass=${qclass}`;
+      window.open(url, '_blank');
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
+    }
   };
 
   const handleBlockAllow = async (action: 'block' | 'allow') => {

@@ -56,15 +56,18 @@ export function SsoTab() {
   const confirmDialog = useConfirmDialog();
   const [config, setConfig] = useState<SsoConfig>(emptyConfig);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<SsoConfig>) => setConfig(current => ({ ...current, ...patch }));
 
   useEffect(() => {
+    setLoaded(false);
     apiClient
       .get<SsoConfig>('/admin/sso/get?includeGroups=true')
       .then(response => {
         if (response.status === 'ok' && response.response) {
           setConfig({ ...emptyConfig, ...response.response });
+          setLoaded(true);
         }
       })
       .catch(() => error(t('common.error'), t('admin.ssoLoadFailed')))
@@ -72,6 +75,7 @@ export function SsoTab() {
   }, [t]);
 
   const save = async () => {
+    if (!loaded) return;
     if (
       config.ssoEnabled &&
       (!config.ssoAuthority || !config.ssoClientId || !config.ssoClientSecret)
@@ -251,7 +255,7 @@ export function SsoTab() {
       </Paper>
 
       <Group justify="flex-end">
-        <Button onClick={save} loading={saving}>
+        <Button onClick={save} loading={saving} disabled={!loaded}>
           {t('common.save')}
         </Button>
       </Group>

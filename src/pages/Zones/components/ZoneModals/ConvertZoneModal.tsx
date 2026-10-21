@@ -34,7 +34,10 @@ export function ConvertZoneModal({
     }
   })();
 
-  const [convertType, setConvertType] = useState(availableTypes[0] || '');
+  const [selectedType, setConvertType] = useState('');
+  const convertType = availableTypes.includes(selectedType)
+    ? selectedType
+    : availableTypes[0] || '';
   const [loading, setLoading] = useState(false);
 
   const handleConvert = async () => {

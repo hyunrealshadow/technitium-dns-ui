@@ -517,6 +517,7 @@ export function AppsPage() {
       </Modal>
 
       <AppConfigModal
+        key={configApp?.name || 'closed'}
         app={configApp}
         opened={configApp !== null}
         onClose={() => setConfigApp(null)}

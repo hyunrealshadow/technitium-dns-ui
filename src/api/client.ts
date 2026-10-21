@@ -106,7 +106,7 @@ export class ApiClient {
     if (!token) {
       this.token = null;
       jotaiStore.set(sessionAtom, null);
-      return new ApiError('Not logged in');
+      throw new ApiError('Not logged in');
     }
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -139,7 +139,7 @@ export class ApiClient {
     if (data.status === 'ok') {
       return data;
     }
-    return new ApiError(data.errorMessage || 'Unknown error', data.innerErrorMessage);
+    throw new ApiError(data.errorMessage || 'Unknown error', data.innerErrorMessage);
   }
 
   async get<T = never>(endpoint: string): Promise<ApiResponse<T>> {

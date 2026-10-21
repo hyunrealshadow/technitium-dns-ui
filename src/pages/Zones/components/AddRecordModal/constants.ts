@@ -23,6 +23,7 @@ export const RECORD_TYPES = [
   'ANAME',
   'FWD',
   'APP',
+  'Unknown',
 ];
 
 export const DNSSEC_ALGORITHMS = [
@@ -48,3 +49,13 @@ export const TLSA_MATCHING_TYPES = ['Full', 'SHA2-256', 'SHA2-512'];
 export const FWD_PROTOCOLS = ['Udp', 'Tcp', 'Tls', 'Https', 'Quic'];
 
 export const FWD_PROXY_TYPES = ['NoProxy', 'DefaultProxy', 'Http', 'Socks5'];
+
+export const SVC_PARAM_KEYS = [
+  'mandatory',
+  'alpn',
+  'no-default-alpn',
+  'port',
+  'ipv4hint',
+  'ipv6hint',
+  'dohpath',
+];

@@ -24,11 +24,15 @@ export function PermissionsTab() {
   const [editing, setEditing] = useState<PermissionItem | null>(null);
 
   const loadPermissions = async () => {
-    const response = await apiClient.get<{ permissions: PermissionItem[] }>(
-      '/admin/permissions/list'
-    );
-    if (response.status === 'ok' && response.response) {
-      setPermissions(response.response.permissions);
+    try {
+      const response = await apiClient.get<{ permissions: PermissionItem[] }>(
+        '/admin/permissions/list'
+      );
+      if (response.status === 'ok' && response.response) {
+        setPermissions(response.response.permissions);
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 
@@ -46,11 +50,28 @@ export function PermissionsTab() {
   }, []);
 
   const openEdit = async (item: PermissionItem) => {
-    const response = await apiClient.get<PermissionItem>(
-      `/admin/permissions/get?section=${encodeURIComponent(item.section)}&includeUsersAndGroups=true`
-    );
-    if (response.status === 'ok' && response.response) {
-      setEditing(response.response);
+    try {
+      const response = await apiClient.get<PermissionItem>(
+        `/admin/permissions/get?section=${encodeURIComponent(item.section)}&includeUsersAndGroups=true`
+      );
+      if (response.status === 'ok' && response.response) {
+        const permission = response.response;
+        const userPermissions = [...(permission.userPermissions || [])];
+        const groupPermissions = [...(permission.groupPermissions || [])];
+        for (const username of permission.users || []) {
+          if (!userPermissions.some(p => p.username === username)) {
+            userPermissions.push({ username, canView: false, canModify: false, canDelete: false });
+          }
+        }
+        for (const name of permission.groups || []) {
+          if (!groupPermissions.some(p => p.name === name)) {
+            groupPermissions.push({ name, canView: false, canModify: false, canDelete: false });
+          }
+        }
+        setEditing({ ...permission, userPermissions, groupPermissions });
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 

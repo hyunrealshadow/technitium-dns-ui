@@ -23,10 +23,12 @@ export function PermissionsModal({
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!opened) return;
     setLoading(true);
+    setLoaded(false);
     const load = async () => {
       try {
         const response = await fetch(
@@ -39,14 +41,17 @@ export function PermissionsModal({
           setGroupPerms(data.response.groupPermissions || []);
           setAvailableUsers(data.response.users || []);
           setAvailableGroups(data.response.groups || []);
+          setLoaded(true);
+        } else {
+          throw new Error(data.errorMessage || t('common.loadFailed'));
         }
       } catch {
-        /* ignore */
+        error(t('common.error'), t('common.loadFailed'));
       }
       setLoading(false);
     };
     load();
-  }, [opened, zone]);
+  }, [opened, zone, t]);
 
   const toggleUserPerm = (username: string, field: 'canView' | 'canModify' | 'canDelete') => {
     setUserPerms(prev =>
@@ -82,6 +87,7 @@ export function PermissionsModal({
   };
 
   const handleSave = async () => {
+    if (!loaded) return;
     setSaving(true);
     try {
       const userPermissions = userPerms
@@ -268,7 +274,7 @@ export function PermissionsModal({
           <Button variant="subtle" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSave} loading={saving}>
+          <Button onClick={handleSave} loading={saving} disabled={!loaded}>
             {t('common.save')}
           </Button>
         </Group>

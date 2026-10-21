@@ -32,12 +32,14 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
   const [settings, setSettings] = useState<Settings>(emptySettings);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const set = (patch: Partial<Settings>) => setSettings(prev => ({ ...prev, ...patch }));
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadFailed(false);
     apiClient
       .get<Settings>('/settings/get')
       .then((response: { status: string; response?: Settings }) => {
@@ -51,7 +53,9 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
           setSettings(loadedSettings);
         }
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -68,6 +72,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       .join(',');
 
   const save = async () => {
+    if (loading || loadFailed) return;
     setSaving(true);
     try {
       const params: Record<string, unknown> = {};
@@ -101,14 +106,14 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.eDnsClientSubnetIPv6PrefixLength = settings.eDnsClientSubnetIPv6PrefixLength;
       params.eDnsClientSubnetIpv4Override = settings.eDnsClientSubnetIpv4Override;
       params.eDnsClientSubnetIpv6Override = settings.eDnsClientSubnetIpv6Override;
-      if (settings.qpmPrefixLimitsIPv4?.length)
-        params.qpmPrefixLimitsIPv4 = settings.qpmPrefixLimitsIPv4
+      params.qpmPrefixLimitsIPv4 =
+        (settings.qpmPrefixLimitsIPv4 || [])
           .map(r => `${r.prefix}|${r.udpLimit}|${r.tcpLimit}`)
-          .join('|');
-      if (settings.qpmPrefixLimitsIPv6?.length)
-        params.qpmPrefixLimitsIPv6 = settings.qpmPrefixLimitsIPv6
+          .join('|') || 'false';
+      params.qpmPrefixLimitsIPv6 =
+        (settings.qpmPrefixLimitsIPv6 || [])
           .map(r => `${r.prefix}|${r.udpLimit}|${r.tcpLimit}`)
-          .join('|');
+          .join('|') || 'false';
       params.qpmLimitSampleMinutes = settings.qpmLimitSampleMinutes;
       params.qpmLimitUdpTruncationPercentage = settings.qpmLimitUdpTruncationPercentage;
       params.qpmLimitBypassList = toArray(toList(settings.qpmLimitBypassList)) || 'false';
@@ -166,10 +171,10 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
       params.dnsTlsCertificatePassword = settings.dnsTlsCertificatePassword || '';
       params.dnsOverHttpRealIpHeader = settings.dnsOverHttpRealIpHeader;
 
-      if (settings.tsigKeys?.length)
-        params.tsigKeys = settings.tsigKeys
+      params.tsigKeys =
+        (settings.tsigKeys || [])
           .map(k => `${k.keyName}|${k.sharedSecret}|${k.algorithmName}`)
-          .join('|');
+          .join('|') || 'false';
 
       params.recursion = settings.recursion;
       params.recursionNetworkACL = toArray(toList(settings.recursionNetworkACL)) || 'false';
@@ -325,19 +330,23 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
   ];
 
   const doBackup = async () => {
-    const selected = BACKUP_ITEMS.filter(i => backupItems[i.key]);
-    if (selected.length === 0) {
-      error(t('common.error'), t('settings.selectBackupItems'));
-      return;
+    try {
+      const selected = BACKUP_ITEMS.filter(i => backupItems[i.key]);
+      if (selected.length === 0) {
+        error(t('common.error'), t('settings.selectBackupItems'));
+        return;
+      }
+      const token = await apiClient.createSingleUseToken();
+      const query = selected.map(i => `${i.key}=true`).join('&');
+      window.open(
+        `/api/settings/backup?token=${encodeURIComponent(token)}&${query}&ts=${Date.now()}`,
+        '_blank'
+      );
+      setBackupOpen(false);
+      success(t('common.success'), t('settings.backedUp'));
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
-    const token = await apiClient.createSingleUseToken();
-    const query = selected.map(i => `${i.key}=true`).join('&');
-    window.open(
-      `/api/settings/backup?token=${encodeURIComponent(token)}&${query}&ts=${Date.now()}`,
-      '_blank'
-    );
-    setBackupOpen(false);
-    success(t('common.success'), t('settings.backedUp'));
   };
 
   const doRestore = async () => {
@@ -396,7 +405,7 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
           <Button size="xs" variant="default" onClick={() => setRestoreOpen(true)}>
             {t('settings.restore')}
           </Button>
-          <Button size="xs" onClick={save} loading={saving} disabled={loading}>
+          <Button size="xs" onClick={save} loading={saving} disabled={loading || loadFailed}>
             {t('common.save')}
           </Button>
         </Group>
@@ -408,6 +417,8 @@ export function SettingsPage({ tab = 'general' }: { tab?: string }) {
           <Skeleton height={140} />
           <Skeleton height={140} />
         </Stack>
+      ) : loadFailed ? (
+        <Text c="red">{t('common.loadFailed')}</Text>
       ) : (
         <Stack>
           {tab === 'general' && <GeneralTab s={settings} set={set} />}

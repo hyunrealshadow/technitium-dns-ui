@@ -54,6 +54,7 @@ function AddGroupForm({
 function GroupForm({ group, onDone }: { group: AdminGroup; onDone: () => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState(group.name);
+  const [loaded, setLoaded] = useState(false);
   const [description, setDescription] = useState(group.description);
   const [members, setMembers] = useState<string[]>([]);
   const [availableUsers, setAvailableUsers] = useState<string[]>([]);
@@ -71,15 +72,19 @@ function GroupForm({ group, onDone }: { group: AdminGroup; onDone: () => void })
           setDescription(r.response.description);
           setMembers(r.response.members || []);
           setAvailableUsers(r.response.users || []);
+          setLoaded(true);
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) error(t('common.error'), t('common.loadFailed'));
+      });
     return () => {
       cancelled = true;
     };
-  }, [group.name]);
+  }, [group.name, t]);
 
   const save = async () => {
+    if (!loaded) return;
     try {
       const params: Record<string, unknown> = {
         group: group.name,
@@ -151,7 +156,9 @@ function GroupForm({ group, onDone }: { group: AdminGroup; onDone: () => void })
         <Button variant="subtle" onClick={onDone}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={save}>{t('common.save')}</Button>
+        <Button onClick={save} disabled={!loaded}>
+          {t('common.save')}
+        </Button>
       </Group>
     </Paper>
   );
@@ -165,9 +172,13 @@ export function GroupsTab() {
   const [editingGroup, setEditingGroup] = useState<AdminGroup | null>(null);
 
   const loadGroups = async () => {
-    const response = await apiClient.get<{ groups: AdminGroup[] }>('/admin/groups/list');
-    if (response.status === 'ok' && response.response) {
-      setGroups(response.response.groups);
+    try {
+      const response = await apiClient.get<{ groups: AdminGroup[] }>('/admin/groups/list');
+      if (response.status === 'ok' && response.response) {
+        setGroups(response.response.groups);
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 
@@ -215,6 +226,7 @@ export function GroupsTab() {
       <Stack>
         <PageHeader title={t('nav.admin')} />
         <GroupForm
+          key={editingGroup.name}
           group={editingGroup}
           onDone={() => {
             setEditingGroup(null);

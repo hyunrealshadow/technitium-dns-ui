@@ -150,12 +150,15 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
               setLoading(false);
               return;
             }
-            params.protocol = forwarderProtocol;
+            params.protocol = forwarderThisServer ? 'Udp' : forwarderProtocol;
             params.forwarder = forwarder;
             params.dnssecValidation = forwarderDnssecValidation;
             params.initializeForwarder = true;
-            params.proxyType = forwarderProxyType;
-            if (forwarderProxyType === 'Http' || forwarderProxyType === 'Socks5') {
+            if (!forwarderThisServer) params.proxyType = forwarderProxyType;
+            if (
+              !forwarderThisServer &&
+              (forwarderProxyType === 'Http' || forwarderProxyType === 'Socks5')
+            ) {
               params.proxyAddress = forwarderProxyAddress;
               params.proxyPort = forwarderProxyPort;
               params.proxyUsername = forwarderProxyUsername || '';
@@ -338,6 +341,7 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
                   ]}
                   value={forwarderProtocol}
                   onChange={v => setForwarderProtocol(v || 'Udp')}
+                  disabled={forwarderThisServer}
                 />
 
                 <Stack gap={4}>
@@ -350,8 +354,10 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
                     checked={forwarderThisServer}
                     onChange={e => {
                       setForwarderThisServer(e.currentTarget.checked);
-                      if (e.currentTarget.checked) setForwarder('this-server');
-                      else setForwarder('');
+                      if (e.currentTarget.checked) {
+                        setForwarder('this-server');
+                        setForwarderProtocol('Udp');
+                      } else setForwarder('');
                     }}
                   />
                   <TextInput
@@ -365,14 +371,13 @@ export function AddZoneModal({ opened, onClose, onSuccess }: AddZoneModalProps) 
                   </Text>
                 </Stack>
 
+                <Checkbox
+                  label={t('zones.enableDnssecValidation')}
+                  checked={forwarderDnssecValidation}
+                  onChange={e => setForwarderDnssecValidation(e.currentTarget.checked)}
+                />
                 {!forwarderThisServer && (
                   <>
-                    <Checkbox
-                      label={t('zones.enableDnssecValidation')}
-                      checked={forwarderDnssecValidation}
-                      onChange={e => setForwarderDnssecValidation(e.currentTarget.checked)}
-                    />
-
                     <Select
                       label={t('zones.forwarderProxyType')}
                       data={[

@@ -20,13 +20,17 @@ export function ClusterTab() {
   const [primaryNodeUrl, setPrimaryNodeUrl] = useState('');
 
   const loadCluster = async () => {
-    const response = await apiClient.get<{
-      nodes: ClusterNode[];
-      clusterInitialized?: boolean;
-    }>('/admin/cluster/state?includeServerIpAddresses=true');
-    if (response.status === 'ok' && response.response) {
-      setNodes(response.response.nodes || []);
-      setClusterInitialized(response.response.clusterInitialized || false);
+    try {
+      const response = await apiClient.get<{
+        nodes: ClusterNode[];
+        clusterInitialized?: boolean;
+      }>('/admin/cluster/state?includeServerIpAddresses=true');
+      if (response.status === 'ok' && response.response) {
+        setNodes(response.response.nodes || []);
+        setClusterInitialized(response.response.clusterInitialized || false);
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 

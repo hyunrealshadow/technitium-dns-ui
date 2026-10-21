@@ -6,6 +6,7 @@
   "packageManager": "pnpm@11.0.8",
   "type": "module",
   "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "dev": "vite",
     "generate-routes": "tsr generate",
     "build": "pnpm generate-routes && tsc -b && vite build",

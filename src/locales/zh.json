@@ -1,5 +1,6 @@
 {
   "common": {
+    "loadFailed": "加载数据失败，请刷新后重试",
     "refresh": "刷新",
     "save": "保存",
     "cancel": "取消",
@@ -531,6 +532,7 @@
     "recordProxyUsername": "代理用户名",
     "recordProxyPassword": "代理密码",
     "recordDataLabel": "记录数据",
+    "customRecordType": "记录类型名称或编号",
     "recordTypeLabel": "记录类型",
     "auto": "自动",
     "ttlDescription": "TTL 以秒为单位，留空则使用默认值",

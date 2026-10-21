@@ -34,9 +34,13 @@ export function SessionsTab() {
   const [newToken, setNewToken] = useState('');
 
   const loadSessions = async () => {
-    const response = await apiClient.get<{ sessions: AdminSession[] }>('/admin/sessions/list');
-    if (response.status === 'ok' && response.response) {
-      setSessions(response.response.sessions);
+    try {
+      const response = await apiClient.get<{ sessions: AdminSession[] }>('/admin/sessions/list');
+      if (response.status === 'ok' && response.response) {
+        setSessions(response.response.sessions);
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 
@@ -74,14 +78,18 @@ export function SessionsTab() {
   };
 
   const openCreateToken = async () => {
-    setNewToken('');
-    setTokenName('');
-    const response = await apiClient.get<{ users: { username: string }[] }>('/admin/users/list');
-    if (response.status === 'ok' && response.response) {
-      setUsers(response.response.users.map(u => u.username));
-      setTokenUser(response.response.users[0]?.username || '');
+    try {
+      setNewToken('');
+      setTokenName('');
+      const response = await apiClient.get<{ users: { username: string }[] }>('/admin/users/list');
+      if (response.status === 'ok' && response.response) {
+        setUsers(response.response.users.map(u => u.username));
+        setTokenUser(response.response.users[0]?.username || '');
+      }
+      setCreateTokenOpen(true);
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
-    setCreateTokenOpen(true);
   };
 
   const createToken = async () => {

@@ -40,6 +40,7 @@ export function DnssecPropertiesModal({
     if (!opened) return;
     setLoading(true);
     const load = async () => {
+      setZoneProps(null);
       try {
         const response = await fetch(
           `/api/zones/dnssec/properties/get?zone=${encodeURIComponent(zone)}`,
@@ -48,17 +49,19 @@ export function DnssecPropertiesModal({
         const data = await response.json();
         if (data.status === 'ok' && data.response) {
           setZoneProps(data.response);
-          setDnsKeyTtl(String(data.response.dnsKeyTtl || 3600));
+          setDnsKeyTtl(String(data.response.dnsKeyTtl ?? 3600));
           setNsec3Iterations(data.response.nsec3Iterations || 0);
           setNsec3SaltLength(data.response.nsec3SaltLength || 0);
+        } else {
+          throw new Error(data.errorMessage || t('common.loadFailed'));
         }
       } catch {
-        /* ignore */
+        error(t('common.error'), t('zones.propertiesLoadFailed'));
       }
       setLoading(false);
     };
     load();
-  }, [opened, zone]);
+  }, [opened, zone, t]);
 
   const dnssecStatusStr = zoneProps?.dnssecStatus as string | undefined;
   const privateKeys = (zoneProps?.dnssecPrivateKeys as Array<Record<string, unknown>>) || [];

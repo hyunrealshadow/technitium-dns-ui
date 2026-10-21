@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Button,
   Checkbox,
   Group,
@@ -11,11 +12,13 @@ import {
 } from '@mantine/core';
 import type { TFunction } from 'i18next';
 import type { RecordFormState } from './utils';
+import type { App } from '../../../Apps/types';
 import {
   DNSSEC_ALGORITHMS,
   DIGEST_TYPES,
   FWD_PROTOCOLS,
   FWD_PROXY_TYPES,
+  SVC_PARAM_KEYS,
   SSHFP_ALGORITHMS,
   SSHFP_FINGERPRINT_TYPES,
   TLSA_CERTIFICATE_USAGES,
@@ -29,11 +32,17 @@ export function RecordTypeFields({
   s,
   set,
   t,
+  apps = [],
+  isEdit = false,
+  zoneType,
 }: {
   recordType: string;
   s: RecordFormState;
   set: (patch: Partial<RecordFormState>) => void;
   t: TFunction;
+  apps?: App[];
+  isEdit?: boolean;
+  zoneType?: string;
 }) {
   const updateSvcParam = (index: number, field: 'key' | 'value', value: string) =>
     set({ svcParams: s.svcParams.map((p, j) => (j === index ? { ...p, [field]: value } : p)) });
@@ -91,6 +100,7 @@ export function RecordTypeFields({
             label={t('zones.primaryNameServer')}
             placeholder="ns1.example.com"
             value={s.soaPrimaryNameServer}
+            disabled={zoneType === 'Catalog'}
             onChange={e => set({ soaPrimaryNameServer: e.target.value })}
             required
           />
@@ -98,6 +108,7 @@ export function RecordTypeFields({
             label={t('zones.responsiblePerson')}
             placeholder="admin@example.com"
             value={s.soaResponsiblePerson}
+            disabled={zoneType === 'Forwarder' || zoneType === 'Catalog'}
             onChange={e => set({ soaResponsiblePerson: e.target.value })}
             required
           />
@@ -429,11 +440,12 @@ export function RecordTypeFields({
           </Group>
           {s.svcParams.map((param, i) => (
             <Group key={i} grow>
-              <TextInput
+              <Autocomplete
                 size="xs"
                 placeholder={t('zones.svcbKeyPlaceholder')}
+                data={SVC_PARAM_KEYS}
                 value={param.key}
-                onChange={e => updateSvcParam(i, 'key', e.target.value)}
+                onChange={value => updateSvcParam(i, 'key', value)}
               />
               <TextInput
                 size="xs"
@@ -530,12 +542,25 @@ export function RecordTypeFields({
             value={s.forwarderProtocol}
             onChange={v => set({ forwarderProtocol: v || 'Udp' })}
             allowDeselect={false}
+            disabled={s.forwarder === 'this-server'}
+          />
+          <Checkbox
+            label={t('zones.useThisServer')}
+            description={t('zones.useThisServerDesc')}
+            checked={s.forwarder === 'this-server'}
+            onChange={e =>
+              set({
+                forwarder: e.currentTarget.checked ? 'this-server' : '',
+                forwarderProtocol: e.currentTarget.checked ? 'Udp' : s.forwarderProtocol,
+              })
+            }
           />
           <TextInput
             label={t('zones.forwarder')}
             placeholder="8.8.8.8 or [2620:fe::10]"
             value={s.forwarder}
             onChange={e => set({ forwarder: e.target.value })}
+            disabled={s.forwarder === 'this-server'}
             required
           />
           <TextInput
@@ -549,48 +574,52 @@ export function RecordTypeFields({
             checked={s.forwarderDnssecValidation}
             onChange={e => set({ forwarderDnssecValidation: e.currentTarget.checked })}
           />
-          <Select
-            label={t('zones.forwarderProxyType')}
-            data={FWD_PROXY_TYPES.map(v => ({
-              value: v,
-              label:
-                v === 'NoProxy'
-                  ? t('zones.noProxy')
-                  : v === 'DefaultProxy'
-                    ? t('zones.proxyTypeDefault')
-                    : v === 'Http'
-                      ? t('zones.httpProxy')
-                      : t('zones.socks5Proxy'),
-            }))}
-            value={s.forwarderProxyType}
-            onChange={v => set({ forwarderProxyType: v || 'DefaultProxy' })}
-            allowDeselect={false}
-          />
-          {(s.forwarderProxyType === 'Http' || s.forwarderProxyType === 'Socks5') && (
+          {s.forwarder !== 'this-server' && (
             <>
-              <TextInput
-                label={t('zones.recordProxyAddress')}
-                value={s.forwarderProxyAddress}
-                onChange={e => set({ forwarderProxyAddress: e.target.value })}
-                required
+              <Select
+                label={t('zones.forwarderProxyType')}
+                data={FWD_PROXY_TYPES.map(v => ({
+                  value: v,
+                  label:
+                    v === 'NoProxy'
+                      ? t('zones.noProxy')
+                      : v === 'DefaultProxy'
+                        ? t('zones.proxyTypeDefault')
+                        : v === 'Http'
+                          ? t('zones.httpProxy')
+                          : t('zones.socks5Proxy'),
+                }))}
+                value={s.forwarderProxyType}
+                onChange={v => set({ forwarderProxyType: v || 'DefaultProxy' })}
+                allowDeselect={false}
               />
-              <TextInput
-                label={t('zones.recordProxyPort')}
-                value={s.forwarderProxyPort}
-                onChange={e => set({ forwarderProxyPort: e.target.value })}
-                required
-              />
-              <TextInput
-                label={t('zones.recordProxyUsername')}
-                value={s.forwarderProxyUsername}
-                onChange={e => set({ forwarderProxyUsername: e.target.value })}
-              />
-              <TextInput
-                label={t('zones.recordProxyPassword')}
-                type="password"
-                value={s.forwarderProxyPassword}
-                onChange={e => set({ forwarderProxyPassword: e.target.value })}
-              />
+              {(s.forwarderProxyType === 'Http' || s.forwarderProxyType === 'Socks5') && (
+                <>
+                  <TextInput
+                    label={t('zones.recordProxyAddress')}
+                    value={s.forwarderProxyAddress}
+                    onChange={e => set({ forwarderProxyAddress: e.target.value })}
+                    required
+                  />
+                  <TextInput
+                    label={t('zones.recordProxyPort')}
+                    value={s.forwarderProxyPort}
+                    onChange={e => set({ forwarderProxyPort: e.target.value })}
+                    required
+                  />
+                  <TextInput
+                    label={t('zones.recordProxyUsername')}
+                    value={s.forwarderProxyUsername}
+                    onChange={e => set({ forwarderProxyUsername: e.target.value })}
+                  />
+                  <TextInput
+                    label={t('zones.recordProxyPassword')}
+                    type="password"
+                    value={s.forwarderProxyPassword}
+                    onChange={e => set({ forwarderProxyPassword: e.target.value })}
+                  />
+                </>
+              )}
             </>
           )}
         </Stack>
@@ -598,16 +627,43 @@ export function RecordTypeFields({
     case 'APP':
       return (
         <Stack gap="sm">
-          <TextInput
+          <Select
             label={t('common.appName')}
+            data={
+              isEdit
+                ? [s.appName]
+                : apps
+                    .filter(app => app.dnsApps.some(handler => handler.isAppRecordRequestHandler))
+                    .map(app => app.name)
+            }
             value={s.appName}
-            onChange={e => set({ appName: e.target.value })}
+            onChange={value => set({ appName: value || '', appClassPath: '', recordData: '' })}
+            disabled={isEdit}
+            searchable
             required
           />
-          <TextInput
+          <Select
             label={t('common.classPath')}
+            data={
+              isEdit
+                ? [s.appClassPath]
+                : (apps.find(app => app.name === s.appName)?.dnsApps || [])
+                    .filter(handler => handler.isAppRecordRequestHandler)
+                    .map(handler => handler.classPath)
+            }
             value={s.appClassPath}
-            onChange={e => set({ appClassPath: e.target.value })}
+            onChange={value =>
+              set({
+                appClassPath: value || '',
+                recordData:
+                  apps
+                    .find(app => app.name === s.appName)
+                    ?.dnsApps.find(handler => handler.classPath === value)?.recordDataTemplate ||
+                  '',
+              })
+            }
+            disabled={isEdit || !s.appName}
+            searchable
             required
           />
           <Textarea
@@ -615,6 +671,26 @@ export function RecordTypeFields({
             value={s.recordData}
             onChange={e => set({ recordData: e.target.value })}
             minRows={4}
+          />
+        </Stack>
+      );
+    case 'Unknown':
+      return (
+        <Stack gap="sm">
+          <TextInput
+            label={t('zones.customRecordType')}
+            placeholder="65400"
+            value={s.customRecordType}
+            onChange={e => set({ customRecordType: e.target.value })}
+            disabled={isEdit}
+            required
+          />
+          <Textarea
+            label="RDATA"
+            placeholder="01:02:AB:CD"
+            value={s.rawData}
+            onChange={e => set({ rawData: e.target.value })}
+            required
           />
         </Stack>
       );

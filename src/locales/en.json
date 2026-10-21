@@ -1,5 +1,6 @@
 {
   "common": {
+    "loadFailed": "Failed to load data, please refresh and try again",
     "refresh": "Refresh",
     "save": "Save",
     "cancel": "Cancel",
@@ -542,6 +543,7 @@
     "recordProxyUsername": "Proxy Username",
     "recordProxyPassword": "Proxy Password",
     "recordDataLabel": "Record Data",
+    "customRecordType": "Record type name or number",
     "recordTypeLabel": "Record Type",
     "auto": "Auto",
     "ttlDescription": "TTL in seconds or leave empty for default",

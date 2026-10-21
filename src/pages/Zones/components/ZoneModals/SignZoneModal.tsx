@@ -27,7 +27,8 @@ export function SignZoneModal({
   const { t } = useTranslation();
   const [algorithm, setAlgorithm] = useState('ECDSA');
   const [hashAlgorithm, setHashAlgorithm] = useState('SHA256');
-  const [curve, setCurve] = useState('P256');
+  const [ecdsaCurve, setEcdsaCurve] = useState('P256');
+  const [eddsaCurve, setEddsaCurve] = useState('ED25519');
   const [kskKeySize, setKskKeySize] = useState(2048);
   const [zskKeySize, setZskKeySize] = useState(1024);
   const [pemKsk, setPemKsk] = useState('');
@@ -56,7 +57,7 @@ export function SignZoneModal({
         if (pemZsk) params.pemZskPrivateKey = pemZsk;
         else params.zskKeySize = zskKeySize;
       } else {
-        params.curve = curve;
+        params.curve = algorithm === 'EDDSA' ? eddsaCurve : ecdsaCurve;
         if (pemKsk) params.pemKskPrivateKey = pemKsk;
         if (pemZsk) params.pemZskPrivateKey = pemZsk;
       }
@@ -116,8 +117,8 @@ export function SignZoneModal({
           <Select
             label={t('zones.curve')}
             data={['P256', 'P384']}
-            value={curve}
-            onChange={v => setCurve(v || 'P256')}
+            value={ecdsaCurve}
+            onChange={v => setEcdsaCurve(v || 'P256')}
           />
         )}
 
@@ -125,8 +126,8 @@ export function SignZoneModal({
           <Select
             label={t('zones.curve')}
             data={['ED25519', 'ED448']}
-            value={curve}
-            onChange={v => setCurve(v || 'ED25519')}
+            value={eddsaCurve}
+            onChange={v => setEddsaCurve(v || 'ED25519')}
           />
         )}
 

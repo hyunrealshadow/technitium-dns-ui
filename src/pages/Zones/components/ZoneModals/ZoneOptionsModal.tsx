@@ -114,6 +114,7 @@ export function ZoneOptionsModal({
   >([]);
 
   const [tab, setTab] = useState<ZoneOptionsTab | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const QUERY_ACCESS_OPTIONS = [
     { value: 'Deny', label: t('zones.policyOptions.deny') },
@@ -168,6 +169,7 @@ export function ZoneOptionsModal({
     const load = async () => {
       setLoadingOptions(true);
       setTab(null);
+      setLoaded(false);
       try {
         const response = await fetch(
           `/api/zones/options/get?zone=${encodeURIComponent(zone)}&includeAvailableCatalogZoneNames=true&includeAvailableTsigKeyNames=true`,
@@ -210,6 +212,9 @@ export function ZoneOptionsModal({
           setUpdate(r.update || 'Deny');
           setUpdateAcl((r.updateNetworkACL || []).join('\n'));
           setUpdateSecurityPolicies(r.updateSecurityPolicies || []);
+          setLoaded(true);
+        } else {
+          throw new Error(data.errorMessage || t('common.loadFailed'));
         }
       } catch {
         error(t('common.error'), t('zones.optionsLoadFailed'));
@@ -268,6 +273,7 @@ export function ZoneOptionsModal({
   };
 
   const handleSave = async () => {
+    if (loadingOptions || !loaded || !tab) return;
     setSaving(true);
     try {
       const params: Record<string, unknown> = { zone };
@@ -297,11 +303,9 @@ export function ZoneOptionsModal({
       params.update = update;
       params.updateNetworkACL = updateAcl.trim().replace(/\n/g, ',') || 'false';
 
-      if (updateSecurityPolicies.length > 0) {
-        params.updateSecurityPolicies = updateSecurityPolicies
-          .map(p => `${p.tsigKeyName}|${p.domain}|${p.allowedTypes}`)
-          .join('|');
-      }
+      params.updateSecurityPolicies = updateSecurityPolicies
+        .map(p => `${p.tsigKeyName}|${p.domain}|${p.allowedTypes}`)
+        .join('|');
 
       await apiClient.post('/zones/options/set', params);
       success(t('common.success'), t('zones.optionsSaved'));
@@ -713,7 +717,7 @@ export function ZoneOptionsModal({
         <Button variant="subtle" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={handleSave} loading={saving} disabled={loadingOptions || !tab}>
+        <Button onClick={handleSave} loading={saving} disabled={loadingOptions || !loaded || !tab}>
           {t('common.save')}
         </Button>
       </Group>

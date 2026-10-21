@@ -24,6 +24,7 @@ export function AppConfigModal({
   const [colorMode] = useAtom(colorModeAtom);
   const isDark = resolveColorMode(colorMode) === 'dark';
   const [configText, setConfigText] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!opened || !app) return;
@@ -32,7 +33,8 @@ export function AppConfigModal({
       .get<{ config: string }>(`/apps/config/get?name=${encodeURIComponent(app.name)}`)
       .then(response => {
         if (!cancelled && response.status === 'ok' && response.response) {
-          setConfigText(response.response.config || '{}');
+          setConfigText(response.response.config ?? '');
+          setLoaded(true);
         }
       })
       .catch(() => {
@@ -44,7 +46,7 @@ export function AppConfigModal({
   }, [opened, app, t]);
 
   const saveConfig = async () => {
-    if (!app) return;
+    if (!app || !loaded) return;
     try {
       const response = await apiClient.post(
         `/apps/config/set?name=${encodeURIComponent(app.name)}`,
@@ -79,7 +81,9 @@ export function AppConfigModal({
           <Button variant="subtle" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={saveConfig}>{t('common.save')}</Button>
+          <Button onClick={saveConfig} disabled={!loaded}>
+            {t('common.save')}
+          </Button>
         </Group>
       </Stack>
     </Modal>

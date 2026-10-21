@@ -67,6 +67,7 @@ function AddUserForm({
 function UserForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
   const { t } = useTranslation();
   const [displayName, setDisplayName] = useState(user.displayName);
+  const [loaded, setLoaded] = useState(false);
   const [disabled, setDisabled] = useState(user.disabled);
   const [sessionTimeout, setSessionTimeout] = useState('7200');
   const [memberOf, setMemberOf] = useState<string[]>([]);
@@ -90,15 +91,19 @@ function UserForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
           setSessionTimeout(String(r.response.sessionTimeoutSeconds));
           setMemberOf(r.response.memberOfGroups || []);
           setAvailableGroups(r.response.groups || []);
+          setLoaded(true);
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) error(t('common.error'), t('common.loadFailed'));
+      });
     return () => {
       cancelled = true;
     };
-  }, [user.username]);
+  }, [user.username, t]);
 
   const save = async () => {
+    if (!loaded) return;
     try {
       const response = await apiClient.post('/admin/users/set', {
         user: user.username,
@@ -180,7 +185,9 @@ function UserForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
         <Button variant="subtle" onClick={onDone}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={save}>{t('common.save')}</Button>
+        <Button onClick={save} disabled={!loaded}>
+          {t('common.save')}
+        </Button>
       </Group>
     </Paper>
   );
@@ -194,9 +201,13 @@ export function UsersTab() {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const loadUsers = async () => {
-    const response = await apiClient.get<{ users: AdminUser[] }>('/admin/users/list');
-    if (response.status === 'ok' && response.response) {
-      setUsers(response.response.users);
+    try {
+      const response = await apiClient.get<{ users: AdminUser[] }>('/admin/users/list');
+      if (response.status === 'ok' && response.response) {
+        setUsers(response.response.users);
+      }
+    } catch (e) {
+      error(t('common.error'), e instanceof Error ? e.message : t('common.loadFailed'));
     }
   };
 
@@ -261,6 +272,7 @@ export function UsersTab() {
       <Stack>
         <PageHeader title={t('nav.admin')} />
         <UserForm
+          key={editingUser.username}
           user={editingUser}
           onDone={() => {
             setEditingUser(null);

@@ -19,6 +19,7 @@ import { ListEditor, type ListColumn } from '../components/ListEditor';
 export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onDone: () => void }) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(!scopeName);
 
   const [name, setName] = useState('');
   const [startingAddress, setStartingAddress] = useState('');
@@ -66,8 +67,10 @@ export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onD
   useEffect(() => {
     if (!scopeName) {
       setUseThisDnsServer(true);
+      setLoaded(true);
       return;
     }
+    setLoaded(false);
     async function load() {
       try {
         const response = await apiClient.get<DhcpScopeDetail>(
@@ -117,6 +120,7 @@ export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onD
           setAllowOnlyReservedLeases(s.allowOnlyReservedLeases);
           setBlockLocallyAdministeredMacAddresses(s.blockLocallyAdministeredMacAddresses);
           setIgnoreClientIdentifierOption(s.ignoreClientIdentifierOption);
+          setLoaded(true);
         }
       } catch {
         error(t('common.error'), t('dhcp.scopeLoadFailed'));
@@ -133,6 +137,7 @@ export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onD
       .join(',');
 
   const handleSave = async () => {
+    if (!loaded) return;
     setSaving(true);
     try {
       const params: Record<string, unknown> = {
@@ -169,22 +174,15 @@ export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onD
       if (!useThisDnsServer) params.dnsServers = cleanTextList(dnsServers);
       if (scopeName && scopeName !== name) params.newName = name;
 
-      if (staticRoutes.length > 0)
-        params.staticRoutes = staticRoutes
-          .map(r => `${r.destination}|${r.subnetMask}|${r.router}`)
-          .join('|');
-      if (vendorInfo.length > 0)
-        params.vendorInfo = vendorInfo.map(v => `${v.identifier}|${v.information}`).join('|');
-      if (genericOptions.length > 0)
-        params.genericOptions = genericOptions.map(g => `${g.code}|${g.value}`).join('|');
-      if (exclusions.length > 0)
-        params.exclusions = exclusions
-          .map(e => `${e.startingAddress}|${e.endingAddress}`)
-          .join('|');
-      if (reservedLeases.length > 0)
-        params.reservedLeases = reservedLeases
-          .map(r => `${r.hostName}|${r.hardwareAddress}|${r.address}|${r.comments}`)
-          .join('|');
+      params.staticRoutes = staticRoutes
+        .map(r => `${r.destination}|${r.subnetMask}|${r.router}`)
+        .join('|');
+      params.vendorInfo = vendorInfo.map(v => `${v.identifier}|${v.information}`).join('|');
+      params.genericOptions = genericOptions.map(g => `${g.code}|${g.value}`).join('|');
+      params.exclusions = exclusions.map(e => `${e.startingAddress}|${e.endingAddress}`).join('|');
+      params.reservedLeases = reservedLeases
+        .map(r => `${r.hostName}|${r.hardwareAddress}|${r.address}|${r.comments}`)
+        .join('|');
 
       const response = await apiClient.post('/dhcp/scopes/set', params);
       if (response.status === 'ok') {
@@ -513,7 +511,7 @@ export function ScopeForm({ scopeName, onDone }: { scopeName: string | null; onD
         <Button variant="subtle" onClick={onDone}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={handleSave} loading={saving}>
+        <Button onClick={handleSave} loading={saving} disabled={!loaded}>
           {t('common.save')}
         </Button>
       </Group>

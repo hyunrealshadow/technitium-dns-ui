@@ -9,6 +9,7 @@ import { apiClient } from '../../../../api/client';
 import { colorModeAtom, resolveColorMode } from '../../../../store/theme';
 import type { ZoneDetailResponse, ZoneRecord, ZoneInfo } from '../../types';
 import { AddRecordModal } from '../AddRecordModal';
+import { getRecordDataParams } from '../AddRecordModal/utils';
 import {
   ImportZoneModal,
   CloneZoneModal,
@@ -175,7 +176,7 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
         zone,
         domain: recordToDelete.name,
         type: recordToDelete.type,
-        ...recordToDelete.rData,
+        ...getRecordDataParams(recordToDelete),
       });
       success(t('common.success'), t('zones.recordDeleted'));
       setDeleteRecordOpen(false);
@@ -195,7 +196,8 @@ export function ZoneDetailView({ zone, onBack }: ZoneDetailViewProps) {
         ttl: record.ttl,
         disable,
         comments: record.comments,
-        ...record.rData,
+        expiryTtl: record.expiryTtl,
+        ...getRecordDataParams(record),
       });
       success(t('common.success'), disable ? t('zones.recordDisabled') : t('zones.recordEnabled'));
       setDisableRecordOpen(false);
